@@ -12,6 +12,10 @@
  */
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
+import {
+  drawPlayerShip, drawInterceptor, drawSaucer, drawDart,
+  drawGunship, drawCruiser, drawDreadnought, drawPowerCapsule,
+} from './sprites';
 
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
@@ -27,6 +31,8 @@ const CONFIG = {
   playerSpeed: 520,
   clearBonus: 5000,
   lifeBonus: 2000,
+  dropRate: 0.22,   // 격추 시 P 아이템 드롭 확률
+  pityKills: 5,     // 이만큼 연속으로 안 나오면 확정 드롭
 };
 
 /* ===== BGM ===== */
@@ -118,7 +124,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   /* ===== 상태 ===== */
   let state: 'ready' | 'play' | 'over' | 'clear' = 'ready';
   let score = 0, combo = 1, comboTimer = 0, lives = 0, time = 0, wave = 0, waveTimer = 0;
-  let overTime = 0, shake = 0, waveMsgT = 0, trickleCd = 0;
+  let overTime = 0, shake = 0, waveMsgT = 0, trickleCd = 0, killsSinceDrop = 0;
   const player = { x: W / 2, y: H - 90, r: 11, fireT: 0, inv: 0, weapon: 1 };
   let bullets: Bullet[] = [];
   let ebullets: EBullet[] = [];
@@ -161,7 +167,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
 
   function reset() {
     score = 0; combo = 1; comboTimer = 0; lives = CONFIG.lives;
-    time = 0; wave = 0; waveTimer = 1.5; trickleCd = 4;
+    time = 0; wave = 0; waveTimer = 1.5; trickleCd = 4; killsSinceDrop = 0;
     player.x = W / 2; player.y = H - 90; player.inv = 2; player.weapon = 1;
     bullets = []; ebullets = []; enemies = []; powerups = []; particles = []; floats = [];
     sound.startMusic(BGM_MAIN, () => 122);
@@ -267,10 +273,17 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     SFX.shoot();
   }
 
+  function drop(x: number, y: number) {
+    powerups.push({ x0: x, x, y, t: 0 });
+    killsSinceDrop = 0;
+  }
+
   function dropLoot(e: Enemy) {
-    if (e.type === 'boss') { powerups.push({ x0: e.x, x: e.x, y: e.y, t: 0 }); return; } // 중간보스: 확정 드롭
     if (e.type === 'final') return;
-    if (Math.random() < 0.12) powerups.push({ x0: e.x, x: e.x, y: e.y, t: 0 });
+    if (e.type === 'boss') { drop(e.x, e.y); return; }   // 중간보스: 확정 드롭
+    killsSinceDrop++;
+    // 확률 드롭 + 연속으로 안 나오면 확정 (초반에도 반드시 강화 기회가 오도록)
+    if (Math.random() < CONFIG.dropRate || killsSinceDrop >= CONFIG.pityKills) drop(e.x, e.y);
   }
 
   function addFloat(x: number, y: number, text: string, color: string) {
@@ -491,10 +504,18 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     // 아이템
     for (const p of powerups) {
       p.t += dt;
-      p.y += 130 * dt;
-      p.x = p.x0 + Math.sin(p.t * 2.5) * 24; // 좌우 사인 흔들림
+      p.y += 120 * dt;
+      p.x0 += Math.sin(p.t * 2.5) * 26 * dt; // 좌우 사인 흔들림
+      const dx0 = player.x - p.x0, dy0 = player.y - p.y;
+      const dist = Math.hypot(dx0, dy0);
+      if (dist < 150) {                       // 자석: 가까우면 플레이어 쪽으로 빨려옴
+        const pull = (1 - dist / 150) * 420 * dt;
+        p.x0 += (dx0 / (dist || 1)) * pull;
+        p.y += (dy0 / (dist || 1)) * pull;
+      }
+      p.x = p.x0;
       const dx = p.x - player.x, dy = p.y - player.y;
-      if (dx * dx + dy * dy < 30 * 30) {
+      if (dx * dx + dy * dy < 32 * 32) {
         p.dead = true;
         if (player.weapon < 5) { player.weapon++; score += 200; addFloat(p.x, p.y, 'POWER UP! Lv.' + player.weapon, '#00ffc8'); SFX.power(); }
         else { score += 500; addFloat(p.x, p.y, 'MAX POWER +500', '#ffd700'); SFX.maxpower(); }
@@ -542,74 +563,55 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.save();
     ctx.translate(x, y);
     if (player.inv > 0 && Math.floor(player.inv * 10) % 2 === 0) ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#00ffc8';
-    ctx.beginPath();
-    ctx.moveTo(0, -18); ctx.lineTo(13, 12); ctx.lineTo(0, 5); ctx.lineTo(-13, 12);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffb03a';
-    ctx.beginPath();
-    ctx.moveTo(-5, 12); ctx.lineTo(0, 20 + Math.random() * 6); ctx.lineTo(5, 12);
-    ctx.closePath(); ctx.fill();
+    drawPlayerShip(ctx, time);
     ctx.restore();
+  }
+
+  /** 보스 체력바 (스프라이트와 별도로 월드 좌표에 그림) */
+  function drawHpBar(e: Enemy) {
+    const bw = e.type === 'final' ? 150 : 88;
+    const y = e.y - e.r - 20;
+    ctx.fillStyle = 'rgba(10,10,24,.85)';
+    ctx.fillRect(e.x - bw / 2 - 1, y - 1, bw + 2, 9);
+    ctx.fillStyle = e.type === 'final' ? '#ffd700' : '#ff5f9e';
+    ctx.fillRect(e.x - bw / 2, y, bw * Math.max(0, e.hp / e.maxHp!), 7);
+    ctx.strokeStyle = 'rgba(255,255,255,.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(e.x - bw / 2 - 1, y - 1, bw + 2, 9);
   }
 
   function drawEnemy(e: Enemy) {
     ctx.save();
     ctx.translate(e.x, e.y);
-    if (e.type === 'final' || e.type === 'boss') {
-      const R = e.r;
-      ctx.fillStyle = e.type === 'final' ? '#ff5f9e' : '#b09aff';
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (Math.PI / 3) * i + e.t * 0.5;
-        i === 0 ? ctx.moveTo(Math.cos(a) * R, Math.sin(a) * R) : ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
-      }
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#07070f';
-      ctx.beginPath(); ctx.arc(0, 0, R * 0.4, 0, 7); ctx.fill();
-      ctx.fillStyle = e.type === 'final' ? '#ffd700' : '#ff5f9e';
-      ctx.beginPath(); ctx.arc(0, 0, R * 0.2, 0, 7); ctx.fill();
-      const bw = e.type === 'final' ? 120 : 80;
-      ctx.fillStyle = '#223';
-      ctx.fillRect(-bw / 2, -R - 18, bw, 7);
-      ctx.fillStyle = e.type === 'final' ? '#ffd700' : '#ff5f9e';
-      ctx.fillRect(-bw / 2, -R - 18, bw * (e.hp / e.maxHp!), 7);
+    if (e.type === 'final') {
+      const frac = e.hp / e.maxHp!;
+      drawDreadnought(ctx, e.t, e.r, frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3);
+    } else if (e.type === 'boss') {
+      drawCruiser(ctx, e.t, e.r);
     } else if (e.type === 'launcher') {
-      ctx.fillStyle = '#ffb03a';
-      ctx.rotate(e.t * 0.8);
-      ctx.fillRect(-e.r * 0.8, -e.r * 0.8, e.r * 1.6, e.r * 1.6);
-      ctx.fillStyle = '#07070f';
-      ctx.fillRect(-e.r * 0.35, -e.r * 0.35, e.r * 0.7, e.r * 0.7);
+      ctx.translate(0, Math.sin(e.t * 1.6) * 2);   // 호버링 흔들림
+      drawGunship(ctx, e.t, e.r);
     } else if (e.type === 'diver') {
       const a = e.armed ? Math.atan2(e.vy!, e.vx!) : Math.PI / 2;
-      ctx.rotate(a + Math.PI / 2);
-      ctx.fillStyle = '#ff8f4a';
-      ctx.beginPath();
-      ctx.moveTo(0, 14); ctx.lineTo(10, -10); ctx.lineTo(0, -4); ctx.lineTo(-10, -10);
-      ctx.closePath(); ctx.fill();
+      ctx.rotate(a - Math.PI / 2);                  // 진행 방향으로 기수 정렬
+      drawDart(ctx, e.t, e.r);
+    } else if (e.type === 'spiral') {
+      drawSaucer(ctx, e.t, e.r);
     } else {
-      ctx.fillStyle = e.type === 'spiral' ? '#6ea8ff' : '#ff5f9e';
-      ctx.rotate(e.t * 2);
-      ctx.beginPath();
-      ctx.moveTo(0, -e.r); ctx.lineTo(e.r, 0); ctx.lineTo(0, e.r); ctx.lineTo(-e.r, 0);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#07070f';
-      ctx.beginPath(); ctx.arc(0, 0, e.r * 0.35, 0, 7); ctx.fill();
+      // 사인파 이동의 순간 속도로 뱅킹: dx/dt = A·ω·cos(ωt)
+      const bank = Math.cos(e.omega! * e.t) * e.amp! * e.omega! * 0.0016;
+      ctx.rotate(Math.max(-0.5, Math.min(0.5, bank)));
+      drawInterceptor(ctx, e.t, e.r);
     }
     ctx.restore();
+    if (e.type === 'final' || e.type === 'boss') drawHpBar(e);
   }
 
   function drawPowerup(p: Powerup) {
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.strokeStyle = '#00ffc8'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 13 + Math.sin(p.t * 6) * 2, 0, 7); ctx.stroke();
-    ctx.fillStyle = '#00ffc8';
-    ctx.font = 'bold 15px Consolas, monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('P', 0, 1);
+    drawPowerCapsule(ctx, p.t);
     ctx.restore();
-    ctx.textBaseline = 'alphabetic';
   }
 
   function drawEndScreen(title: string, titleColor: string, g: Grade) {

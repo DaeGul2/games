@@ -4,6 +4,7 @@
  */
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
+import { drawRunner, drawSpeedLines, drawCrate, drawDrone, drawCeiling } from './runnerSprites';
 
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
@@ -227,63 +228,30 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
 
   /* ===== 그리기 ===== */
   function drawPlayer() {
-    const ph = player.duck ? 28 : player.h;
+    // 착지 그림자 (높이 오를수록 작고 옅게)
+    const airH = Math.max(0, GROUND_Y - player.y);
+    const k = Math.max(0, 1 - airH / 190);
+    ctx.fillStyle = `rgba(0,255,200,${0.16 * k})`;
+    ctx.beginPath();
+    ctx.ellipse(player.x, GROUND_Y + 3, 20 * k + 6, 4.5 * k + 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.save();
     ctx.translate(player.x, player.y);
-    ctx.fillStyle = '#00ffc8';
-    ctx.shadowColor = '#00ffc8'; ctx.shadowBlur = 12;
-    ctx.fillRect(-player.w / 2, -ph, player.w, ph - 14);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(2, -ph + 8, 10, 8);
-    ctx.fillStyle = '#00ffc8';
-    if (player.onGround && state === 'play') {
-      const a = Math.sin(player.legT) * 8;
-      ctx.fillRect(-14 + a, -14, 9, 14);
-      ctx.fillRect(5 - a, -14, 9, 14);
-    } else {
-      ctx.fillRect(-14, -12, 9, 12);
-      ctx.fillRect(5, -12, 9, 12);
-    }
+    drawRunner(ctx, {
+      duck: player.duck,
+      onGround: player.onGround,
+      running: state === 'play',
+      legT: player.legT,
+      vy: player.vy,
+    });
     ctx.restore();
   }
 
   function drawObstacle(o: Obstacle) {
-    ctx.save();
-    if (o.type === 'drone') {
-      const y = o.y + Math.sin(o.t!) * 6;
-      ctx.fillStyle = '#ff5f9e';
-      ctx.shadowColor = '#ff5f9e'; ctx.shadowBlur = 10;
-      ctx.fillRect(o.x, y, o.w, o.h);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#0a0a12';
-      ctx.fillRect(o.x + 8, y + 8, o.w - 16, o.h - 16);
-      ctx.strokeStyle = '#ff5f9e'; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(o.x - 6, y - 4); ctx.lineTo(o.x + o.w + 6, y - 4);
-      ctx.stroke();
-    } else if (o.type === 'ceil') {
-      // 낮은 천장: 위에서 매달린 바 — 숙여서 통과
-      ctx.strokeStyle = '#b09aff'; ctx.lineWidth = 3;
-      ctx.beginPath();
-      for (let x = o.x + 14; x < o.x + o.w; x += 46) { ctx.moveTo(x, 0); ctx.lineTo(x, o.y - o.h); }
-      ctx.stroke();
-      ctx.fillStyle = '#b09aff';
-      ctx.shadowColor = '#b09aff'; ctx.shadowBlur = 10;
-      ctx.fillRect(o.x, o.y - o.h, o.w, o.h);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(10,10,18,.45)';
-      for (let x = o.x + 6; x < o.x + o.w - 8; x += 20) ctx.fillRect(x, o.y - o.h + 6, 10, o.h - 12);
-    } else {
-      const c = o.type === 'tall' ? '#ff8f4a' : '#ffb03a';
-      ctx.fillStyle = c;
-      ctx.shadowColor = c; ctx.shadowBlur = 10;
-      ctx.fillRect(o.x, o.y - o.h, o.w, o.h);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(10,10,18,.4)';
-      for (let yy = o.y - o.h + 8; yy < o.y - 6; yy += 12) ctx.fillRect(o.x + 4, yy, o.w - 8, 4);
-    }
-    ctx.restore();
+    if (o.type === 'drone') drawDrone(ctx, o.x, o.y + Math.sin(o.t!) * 6, o.w, o.h, o.t!);
+    else if (o.type === 'ceil') drawCeiling(ctx, o.x, o.y, o.w, o.h);
+    else drawCrate(ctx, o.x, o.y, o.w, o.h, o.type === 'tall');
   }
 
   function draw() {
@@ -299,6 +267,7 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
     for (let x = -off; x < W; x += 46) ctx.fillRect(x, GROUND_Y + 8, 24, 3);
 
     obstacles.forEach(drawObstacle);
+    if (state === 'play') drawSpeedLines(ctx, player.x, player.y, speed, score * 0.02);
     drawPlayer();
 
     ctx.fillStyle = '#e8f0ff';
