@@ -12,6 +12,7 @@
  */
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
+import { Quality } from '../lib/perf';
 import {
   drawPlayerShip, drawInterceptor, drawSaucer, drawDart,
   drawGunship, drawCruiser, drawDreadnought, drawPowerCapsule,
@@ -31,8 +32,8 @@ const CONFIG = {
   playerSpeed: 520,
   clearBonus: 5000,
   lifeBonus: 2000,
-  dropRate: 0.22,   // 격추 시 P 아이템 드롭 확률
-  pityKills: 5,     // 이만큼 연속으로 안 나오면 확정 드롭
+  dropRate: 0.08,   // 격추 시 P 아이템 드롭 확률
+  pityKills: 10,    // 이만큼 연속으로 안 나오면 확정 드롭
 };
 
 /* ===== BGM ===== */
@@ -110,14 +111,10 @@ const WAVE_PLAN: Record<number, WaveEntry[]> = {
 
 export function createShooter(cv: HTMLCanvasElement): () => void {
   const W = 720, H = 860;
-  const ctx = cv.getContext('2d')!;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = W * dpr;
-  cv.height = H * dpr;
-  const fit = Math.min(1, (innerHeight - 20) / H, (innerWidth - 20) / W);
-  cv.style.width = W * fit + 'px';
-  cv.style.height = H * fit + 'px';
-  ctx.scale(dpr, dpr);
+  const ctx = cv.getContext('2d', { alpha: false })!;
+  const fit = Math.min(1, (innerHeight - 120) / H, (innerWidth - 40) / W);
+  const quality = new Quality(cv, ctx, W, H, fit);
+  let showFps = false;
 
   const KEY = KEYS.shooter;
 
@@ -155,12 +152,14 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     keys[e.code] = true; useMouse = false;
     if (e.code === 'Space') pressStart();
     if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
+    if (e.code === 'KeyF' && !e.repeat) showFps = !showFps;
   }, opts);
   window.addEventListener('keyup', e => { keys[e.code] = false; }, opts);
   cv.addEventListener('pointermove', e => {
+    // 실제 표시 크기 기준으로 환산 — CSS 배율이 바뀌어도 커서와 기체가 어긋나지 않는다
     const r = cv.getBoundingClientRect();
-    mouseX = (e.clientX - r.left) / fit;
-    mouseY = (e.clientY - r.top) / fit;
+    mouseX = (e.clientX - r.left) * (W / r.width);
+    mouseY = (e.clientY - r.top) * (H / r.height);
     useMouse = true;
   }, opts);
   cv.addEventListener('pointerdown', pressStart, opts);
@@ -291,6 +290,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   }
 
   function boom(x: number, y: number, color: string, n = 14) {
+    if (quality.low) n = Math.ceil(n / 2);   // 저사양 모드에서는 파티클 절반
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = Math.random() * 220 + 60;
       particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.3, color });
@@ -366,9 +366,9 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) combo = 1; }
     if (player.inv > 0) player.inv -= dt;
 
-    // 플레이어 이동: 마우스(프레임레이트 독립 지수 보간) 또는 키보드
+    // 플레이어 이동: 마우스(거의 1:1 추종, 미세 떨림만 제거) 또는 키보드
     if (useMouse) {
-      const f = 1 - Math.exp(-14 * dt);
+      const f = 1 - Math.exp(-55 * dt);
       player.x += (mouseX - player.x) * f;
       player.y += (mouseY - player.y) * f;
     } else {
@@ -638,7 +638,9 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
 
   function draw() {
     ctx.save();
-    ctx.clearRect(0, 0, W, H);
+    // alpha:false 컨텍스트라 배경을 직접 칠한다 (clearRect는 검정으로 비움)
+    ctx.fillStyle = '#07070f';
+    ctx.fillRect(0, 0, W, H);
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 20, (Math.random() - 0.5) * shake * 20);
 
     ctx.fillStyle = '#2e3a58';
@@ -704,6 +706,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.fillText('WAVE ' + wave + ' / ' + CONFIG.finalWave, 20, H - 16);
     ctx.textAlign = 'right';
     ctx.fillText('M: 소리 ' + (sound.muted ? 'OFF' : 'ON'), W - 20, H - 16);
+    if (showFps) ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 20, H - 32);
     ctx.textAlign = 'left';
 
     // 웨이브 알림
@@ -742,6 +745,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function loop(now: number) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    quality.tick(dt);
     update(dt);
     draw();
     rafId = requestAnimationFrame(loop);

@@ -38,23 +38,122 @@ interface RunnerState {
   vy: number;
 }
 
+const SKIN = '#ffd7b0';
+const SUIT = '#00ffc8';
+const SUIT_DARK = '#059e7d';
+
+/**
+ * 슬라이딩 자세 — 몸을 완전히 지면과 나란히 눕힌 별도 포즈.
+ * (서 있는 스프라이트를 회전시키면 "기울어진 사람"으로 보여 따로 그린다)
+ */
+function drawSlide(ctx: Ctx, t: number) {
+  const bob = Math.sin(t * 22) * 0.8;   // 지면에 쓸리는 미세 진동
+
+  ctx.save();
+  ctx.translate(0, bob);
+
+  // 지면 마찰 스파크
+  ctx.fillStyle = 'rgba(255,215,0,.75)';
+  for (let i = 0; i < 4; i++) {
+    const sx = -18 - ((t * 420 + i * 27) % 46);
+    const sy = -2 - ((i * 7) % 9);
+    ctx.fillRect(sx, sy, 3.5, 1.6);
+  }
+
+  // 뒷다리 (뒤로 뻗음)
+  ctx.strokeStyle = SUIT_DARK;
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, -12);
+  ctx.lineTo(-19, -8);
+  ctx.stroke();
+
+  // 앞다리 (접어 올림)
+  ctx.strokeStyle = SUIT;
+  ctx.beginPath();
+  ctx.moveTo(-4, -12);
+  ctx.lineTo(-13, -17);
+  ctx.lineTo(-3, -19);
+  ctx.stroke();
+
+  // 몸통 — 수평으로 누운 캡슐
+  ctx.fillStyle = lin(ctx, 'r:slide', -18, -20, 12, -6, [
+    [0, SUIT], [1, '#9dfff0'],
+  ]);
+  ctx.beginPath();
+  ctx.roundRect(-18, -20, 30, 12, 6);
+  ctx.fill();
+
+  // 가슴 발광 라인
+  ctx.strokeStyle = '#eafffb';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-9, -18);
+  ctx.lineTo(-4, -13);
+  ctx.moveTo(-3, -18);
+  ctx.lineTo(2, -13);
+  ctx.stroke();
+
+  // 앞으로 뻗은 팔
+  ctx.strokeStyle = SUIT;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(8, -16);
+  ctx.lineTo(20, -12);
+  ctx.stroke();
+  ctx.strokeStyle = SUIT_DARK;
+  ctx.beginPath();
+  ctx.moveTo(8, -13);
+  ctx.lineTo(17, -19);
+  ctx.stroke();
+
+  // 머리 — 몸통 앞쪽에 낮게
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.arc(15, -21, 6.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = SUIT;                 // 헬멧 (위쪽을 덮음)
+  ctx.beginPath();
+  ctx.arc(15, -22, 7.4, Math.PI * 1.02, Math.PI * 2.05);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#0b2b3d';             // 바이저 (진행 방향)
+  ctx.beginPath();
+  ctx.ellipse(18.5, -20, 4, 2.7, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(170,245,255,.7)';
+  ctx.beginPath();
+  ctx.ellipse(19.6, -21, 1.4, 1, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 헬멧 크레스트 (뒤로 눕혀짐)
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.moveTo(10, -27);
+  ctx.lineTo(3, -25);
+  ctx.lineTo(9.5, -23.5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /** 주자 — 바이저를 쓴 네온 러너 */
 export function drawRunner(ctx: Ctx, s: RunnerState) {
+  if (s.duck) { drawSlide(ctx, s.legT * 0.06); return; }
+
   const swing = Math.sin(s.legT);
   const swing2 = Math.sin(s.legT + Math.PI);
   const air = !s.onGround;
 
   ctx.save();
-  if (s.duck) {
-    // 슬라이딩 자세: 전체를 눕힌다
-    ctx.translate(0, -14);
-    ctx.rotate(-0.95);
-    ctx.translate(0, 14);
-  }
 
-  const skin = '#ffd7b0';
-  const suit = '#00ffc8';
-  const suitDark = '#059e7d';
+  const skin = SKIN;
+  const suit = SUIT;
+  const suitDark = SUIT_DARK;
 
   // ── 뒷팔
   ctx.strokeStyle = suitDark;

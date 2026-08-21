@@ -14,8 +14,9 @@
   --gold: #ffd700;
   --blue: #6ea8ff;
 
+  /* 한글 본문은 시스템 폰트로 — 외부 웹폰트(수 MB)를 받지 않아 첫 로딩이 즉시 끝난다 */
   --font-display: 'Orbitron', 'Segoe UI', sans-serif;
-  --font-body: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-body: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 * {
@@ -132,13 +133,15 @@ a {
 .g-D { color: var(--dim); }
 
 /* 게임 캔버스 프레임 — 네온 테두리 + 코너 마커 */
+/* 캔버스가 매 프레임 다시 그려지므로 backdrop-filter를 쓰면 안 된다.
+   (배경 블러를 프레임마다 재계산해 저사양 PC에서 프레임이 떨어짐) */
 .stage {
   position: relative;
   padding: 14px;
   border-radius: 20px;
-  background: rgba(10, 10, 22, 0.6);
+  background: #0a0a16;
   border: 1px solid var(--line);
-  backdrop-filter: blur(10px);
+  contain: paint;
 }
 
 .stage canvas {
@@ -173,6 +176,17 @@ a {
   border-left: none;
   border-top: none;
   border-radius: 0 0 12px 0;
+}
+
+/* 게임 중에는 배경 애니메이션을 정지 — 캔버스에 CPU/GPU를 몰아준다 */
+.bg-layer.quiet .bg-grid {
+  animation: none;
+  opacity: 0.55;
+}
+
+.bg-layer.quiet .bg-orb {
+  filter: blur(56px);
+  opacity: 0.26;
 }
 
 /* 접근성: 모션 최소화 설정 존중 */

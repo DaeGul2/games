@@ -4,9 +4,11 @@ import Background from './Background';
 
 export default function Layout() {
   const location = useLocation();
+  const inGame = location.pathname !== '/';
+
   return (
     <>
-      <Background />
+      <Background quiet={inGame} />
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}

@@ -5,6 +5,7 @@
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { drawRunner, drawSpeedLines, drawCrate, drawDrone, drawCeiling } from './runnerSprites';
+import { Quality } from '../lib/perf';
 
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
@@ -89,13 +90,10 @@ interface Obstacle { x: number; y: number; w: number; h: number; type: 'block' |
 
 export function createRunner(cv: HTMLCanvasElement): () => void {
   const W = 960, H = 420;
-  const ctx = cv.getContext('2d')!;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = W * dpr;
-  cv.height = H * dpr;
-  cv.style.width = W + 'px';
-  cv.style.height = H + 'px';
-  ctx.scale(dpr, dpr);
+  const ctx = cv.getContext('2d', { alpha: false })!;
+  const fit = Math.min(1, (innerWidth - 40) / W);
+  const quality = new Quality(cv, ctx, W, H, fit);
+  let showFps = false;
 
   const GROUND_Y = H - 70;
   const KEY = KEYS.runner;
@@ -151,6 +149,7 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
       downHeld = true;
     }
     if (e.code === 'KeyM' && !e.repeat) sound.toggleMute();
+    if (e.code === 'KeyF' && !e.repeat) showFps = !showFps;
   }, opts);
   window.addEventListener('keyup', e => { if (e.code === 'ArrowDown') downHeld = false; }, opts);
   cv.addEventListener('pointerdown', jump, opts);
@@ -255,7 +254,9 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
   }
 
   function draw() {
-    ctx.clearRect(0, 0, W, H);
+    // alpha:false 컨텍스트라 배경을 직접 칠한다
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, W, H);
 
     ctx.fillStyle = '#3a4a6a';
     stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
@@ -267,7 +268,7 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
     for (let x = -off; x < W; x += 46) ctx.fillRect(x, GROUND_Y + 8, 24, 3);
 
     obstacles.forEach(drawObstacle);
-    if (state === 'play') drawSpeedLines(ctx, player.x, player.y, speed, score * 0.02);
+    if (state === 'play' && !quality.low) drawSpeedLines(ctx, player.x, player.y, speed, score * 0.02);
     drawPlayer();
 
     ctx.fillStyle = '#e8f0ff';
@@ -279,6 +280,7 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
     ctx.fillText('BEST ' + String(best).padStart(6, '0'), W - 24, 66);
     ctx.fillStyle = '#445';
     ctx.fillText('M: 소리 ' + (sound.muted ? 'OFF' : 'ON'), W - 24, H - 16);
+    if (showFps) ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 24, H - 32);
 
     if (state === 'ready') {
       ctx.textAlign = 'center';
@@ -320,6 +322,7 @@ export function createRunner(cv: HTMLCanvasElement): () => void {
   function loop(now: number) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    quality.tick(dt);
     update(dt);
     draw();
     rafId = requestAnimationFrame(loop);
