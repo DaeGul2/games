@@ -1,123 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>K-FOOD 게임천국</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    min-height: 100vh; background: #07070f; color: #e8f0ff;
-    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 40px 20px;
-  }
-  h1 {
-    font-size: 44px; letter-spacing: 4px; margin-bottom: 8px;
-    background: linear-gradient(90deg, #00ffc8, #b09aff, #ff5f9e);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    text-align: center;
-  }
-  .sub { color: #667; margin-bottom: 40px; letter-spacing: 2px; }
-  .games { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; }
-  .card {
-    width: 300px; padding: 28px; border: 1px solid #223; border-radius: 14px;
-    background: #0d0d1a; text-decoration: none; color: inherit;
-    transition: transform .15s, box-shadow .15s, border-color .15s;
-  }
-  .card:hover { transform: translateY(-4px); }
-  .card.runner:hover { border-color: #00ffc8; box-shadow: 0 8px 30px rgba(0,255,200,.2); }
-  .card.shooter:hover { border-color: #b09aff; box-shadow: 0 8px 30px rgba(176,154,255,.25); }
-  .card .icon { font-size: 44px; margin-bottom: 14px; }
-  .card h2 { font-size: 24px; margin-bottom: 8px; }
-  .card.runner h2 { color: #00ffc8; }
-  .card.shooter h2 { color: #b09aff; }
-  .card p { color: #99a; font-size: 14px; line-height: 1.6; }
-  .boards { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
-  .board {
-    width: 300px; padding: 20px 24px; border: 1px solid #1a1a2e; border-radius: 14px; background: #0b0b16;
-  }
-  .board h3 { font-size: 16px; color: #99a; margin-bottom: 12px; letter-spacing: 1px; }
-  .board ol { list-style: none; }
-  .board li {
-    display: flex; justify-content: space-between; padding: 6px 4px;
-    font-family: Consolas, monospace; font-size: 15px; border-bottom: 1px solid #14141f;
-  }
-  .board li .rank { color: #556; width: 26px; }
-  .board li .grade { font-weight: bold; width: 30px; text-align: center; }
-  .board li .score { flex: 1; text-align: right; }
-  .g-S { color: #ffd700; } .g-A { color: #ff5f9e; } .g-B { color: #00ffc8; }
-  .g-C { color: #6ea8ff; } .g-D { color: #8892a6; }
-  .empty { color: #445; font-size: 14px; padding: 10px 4px; }
-  .admin { margin-top: 44px; }
-  .admin button {
-    background: none; border: 1px solid #2a2a3a; color: #556; padding: 8px 18px;
-    border-radius: 8px; cursor: pointer; font-size: 13px;
-  }
-  .admin button:hover { border-color: #ff5f5f; color: #ff5f5f; }
-</style>
-</head>
-<body>
-  <h1>K-FOOD 게임천국</h1>
-  <div class="sub">GAME POINT = FOOD POINT</div>
-
-  <div class="games">
-    <a class="card runner" href="runner.html">
-      <div class="icon">🏃</div>
-      <h2>네온 러너</h2>
-      <p>점프·2단점프·숙이기·급강하!<br>리듬 타듯 몰아치는 장애물 콤보.<br><b>조작:</b> 스페이스바(점프×2) / ↓(숙이기·급강하)</p>
-    </a>
-    <a class="card shooter" href="shooter.html">
-      <div class="icon">🚀</div>
-      <h2>벡터 스트라이크</h2>
-      <p>무기 아이템을 모아 화력 강화!<br>15웨이브 최종보스를 격파하면 클리어.<br><b>조작:</b> 마우스 이동 / 공격 자동</p>
-    </a>
-  </div>
-
-  <div class="boards">
-    <div class="board">
-      <h3>🏆 네온 러너 TOP 10</h3>
-      <ol id="board-runner"></ol>
-    </div>
-    <div class="board">
-      <h3>🏆 벡터 스트라이크 TOP 10</h3>
-      <ol id="board-shooter"></ol>
-    </div>
-  </div>
-
-  <div class="admin">
-    <button onclick="resetScores()">기록 전체 초기화 (운영자용)</button>
-  </div>
-
-<script>
-'use strict';
-const KEYS = { runner: 'kfood_arcade_runner', shooter: 'kfood_arcade_shooter' };
-
-function render() {
-  for (const [game, key] of Object.entries(KEYS)) {
-    const el = document.getElementById('board-' + game);
-    const list = JSON.parse(localStorage.getItem(key) || '[]').slice(0, 10);
-    if (list.length === 0) { el.innerHTML = '<div class="empty">아직 기록이 없습니다</div>'; continue; }
-    el.innerHTML = list.map((r, i) =>
-      `<li><span class="rank">${i + 1}</span>` +
-      `<span class="grade g-${r.grade}">${r.grade}</span>` +
-      `<span class="score">${r.score.toLocaleString()}</span></li>`
-    ).join('');
-  }
-}
-
-function resetScores() {
-  if (!confirm('모든 게임 기록을 삭제할까요? (되돌릴 수 없음)')) return;
-  for (const key of Object.values(KEYS)) {
-    localStorage.removeItem(key);
-    localStorage.removeItem(key + '_best');
-  }
-  render();
-}
-
-render();
-// 게임에서 돌아왔을 때 자동 갱신
-addEventListener('focus', render);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
-</script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>K-FOOD 게임천국</title>
+    <meta name="description" content="K-Food 박람회 PC방 부스 아케이드 — 점수로 등급 받고 음식 포인트 교환" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
