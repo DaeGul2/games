@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>네온 러너</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; }
+  body { display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; }
+  #wrap { position: relative; }
+  canvas { display: block; background: #0a0a12; border-radius: 8px; box-shadow: 0 0 40px rgba(0,255,200,.15); }
+  #back {
+    position: absolute; top: 12px; left: 12px; color: #556; font-size: 14px;
+    text-decoration: none; z-index: 10; padding: 4px 10px; border: 1px solid #334; border-radius: 6px;
+  }
+  #back:hover { color: #0fc; border-color: #0fc; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <a id="back" href="index.html">← 메뉴</a>
+  <canvas id="game"></canvas>
+</div>
+<script>
+'use strict';
+
+/* ================= 설정 (부스 운영 중 조정 가능) ================= */
+const CONFIG = {
+  grades: [
+    { min: 2500, label: 'S', color: '#ffd700', msg: '전설의 러너!' },
+    { min: 1600, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
+    { min: 900,  label: 'B', color: '#00ffc8', msg: '잘했어요!' },
+    { min: 400,  label: 'C', color: '#6ea8ff', msg: '좋아요!' },
+    { min: 0,    label: 'D', color: '#8892a6', msg: '다시 도전!' },
+  ],
+  baseSpeed: 400,        // 시작 속도 (px/s)
+  maxSpeed: 980,
+  accel: 13,             // 초당 속도 증가
+  gravity: 3200,
+  jumpVel: -1050,        // 1단 점프
+  jumpVel2: -950,        // 2단 점프
+  fastFall: 1500,        // 공중에서 ↓ : 급강하 속도
+  scoreKey: 'kfood_arcade_runner',
+};
+
+/* ================= 캔버스 셋업 ================= */
+const W = 960, H = 420;
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+cv.width = W * dpr; cv.height = H * dpr;
+cv.style.width = W + 'px'; cv.style.height = H + 'px';
+ctx.scale(dpr, dpr);
+
+const GROUND_Y = H - 70;
+
+/* ================= 사운드 — Web Audio 실시간 합성 (외부 파일·저작권 없음) ================= */
+const Sound = (() => {
+  let ac = null, master, musicG, sfxG, muted = false;
+  let seqTimer = null, step = 0, nextT = 0, pattern = null, getBpm = () => 120;
+  let noiseBuf = null;
+
+  function init() {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = muted ? 0 : .5; master.connect(ac.destination);
+    musicG = ac.createGain(); musicG.gain.value = .32; musicG.connect(master);
+    sfxG = ac.createGain(); sfxG.gain.value = .6; sfxG.connect(master);
+  }
+  function ensure() { init(); if (ac.state === 'suspended') ac.resume(); }
+
+  // 단일 오실레이터 + 엔벨로프 (f→f2 피치 슬라이드)
+  function tone({ f = 440, f2 = 0, dur = .1, type = 'square', vol = .3, when = 0, dest = null }) {
+    if (!ac) return;
+    const t = ac.currentTime + when;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(1, f2), t + dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .005);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(dest || sfxG);
+    o.start(t); o.stop(t + dur + .02);
+  }
+  // 화이트노이즈 + 필터 (타격·폭발·하이햇)
+  function noise({ dur = .2, vol = .3, fc = 1000, type = 'lowpass', when = 0, dest = null }) {
+    if (!ac) return;
+    if (!noiseBuf) {
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = ac.currentTime + when;
+    const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = fc;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(dest || sfxG);
+    s.start(t, Math.random()); s.stop(t + dur + .02);
+  }
+  // 16스텝 시퀀서 BGM (킥/하이햇/베이스/리드) — 룩어헤드 스케줄링
+  function schedStep(t, i, sd) {
+    const p = pattern, when = t - ac.currentTime;
+    if (p.kick[i % 16]) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(45, t + .1);
+      g.gain.setValueAtTime(.5, t);
+      g.gain.exponentialRampToValueAtTime(.001, t + .12);
+      o.connect(g); g.connect(musicG); o.start(t); o.stop(t + .15);
+    }
+    if (p.hat[i % 16]) noise({ dur: .03, vol: .1, fc: 7000, type: 'highpass', when, dest: musicG });
+    const b = p.bass[i % p.bass.length];
+    if (b) tone({ f: b, dur: sd * .95, type: 'triangle', vol: .3, when, dest: musicG });
+    const l = p.lead[i % p.lead.length];
+    if (l) tone({ f: l, dur: sd * .85, type: 'square', vol: .08, when, dest: musicG });
+  }
+  function startMusic(pat, bpmFn) {
+    ensure();
+    pattern = pat;
+    if (bpmFn) getBpm = bpmFn;
+    if (seqTimer) return;                 // 이미 재생 중이면 패턴/템포만 교체
+    step = 0; nextT = ac.currentTime + .05;
+    seqTimer = setInterval(() => {
+      const sd = 60 / getBpm() / 4;       // 16분음표 길이
+      while (nextT < ac.currentTime + .12) { schedStep(nextT, step, sd); nextT += sd; step++; }
+    }, 30);
+  }
+  function stopMusic() { if (seqTimer) { clearInterval(seqTimer); seqTimer = null; } pattern = null; }
+  function toggleMute() { muted = !muted; if (master) master.gain.value = muted ? 0 : .5; return muted; }
+
+  return { ensure, tone, noise, startMusic, stopMusic, toggleMute, get muted() { return muted; } };
+})();
+
+// 러너 BGM — A 마이너 펜타토닉. 게임 속도에 비례해 템포 상승
+const BGM = {
+  kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,1,0],
+  hat:  [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,1],
+  bass: [110,0,110,0, 131,0,110,0, 98,0,98,0, 87,0,98,0],
+  lead: [440,0,0,523, 0,0,587,0, 0,659,0,0, 587,0,523,0, 440,0,0,392, 0,0,440,0, 0,523,0,0, 440,0,392,0],
+};
+const SFX = {
+  jump()  { Sound.tone({ f: 330, f2: 660, dur: .12, vol: .22 }); },
+  jump2() { Sound.tone({ f: 520, f2: 1100, dur: .12, vol: .22 }); },
+  fall()  { Sound.tone({ f: 800, f2: 160, dur: .18, type: 'sawtooth', vol: .14 }); Sound.noise({ dur: .15, vol: .12, fc: 1400 }); },
+  duck()  { Sound.tone({ f: 190, f2: 150, dur: .06, type: 'triangle', vol: .2 }); },
+  land()  { Sound.tone({ f: 130, f2: 90, dur: .07, type: 'sine', vol: .25 }); },
+  mile()  { Sound.tone({ f: 880, dur: .07, vol: .12 }); Sound.tone({ f: 1320, dur: .09, vol: .12, when: .07 }); },
+  crash() { Sound.noise({ dur: .45, vol: .45, fc: 900 }); Sound.tone({ f: 260, f2: 45, dur: .5, type: 'sawtooth', vol: .3 }); },
+};
+function gradeJingle(label) {
+  const seq = { S: [523,659,784,1047,1319], A: [523,659,784,1047], B: [523,659,784], C: [440,554], D: [330,262] }[label];
+  seq.forEach((f, i) => Sound.tone({ f, dur: .16, vol: .18, when: .5 + i * .13 }));
+}
+
+/* ================= 장애물 패턴 =================
+ * 리듬게임처럼 "동작 콤보"를 하나의 패턴으로 스폰.
+ *  block: 점프 | tall: 2단 점프 | drone: 숙이기 | droneHigh: 페이크(그냥 통과)
+ *  ceil: 낮은 천장 → 구간 내내 숙인 채 통과
+ * dx는 기준 간격(px). 실제 간격은 속도에 비례 확대되어
+ * 동작 사이 시간 간격(dx/baseSpeed ≈ 0.3~0.45초)이 일정하게 유지됨.
+ */
+const PATTERNS = {
+  1: [
+    [{ dx: 0, k: 'block' }],
+    [{ dx: 0, k: 'drone' }],
+    [{ dx: 0, k: 'ceil' }],
+    [{ dx: 0, k: 'block' }, { dx: 180, k: 'block' }],
+    [{ dx: 0, k: 'droneHigh' }, { dx: 160, k: 'block' }],
+  ],
+  2: [
+    [{ dx: 0, k: 'block' }, { dx: 195, k: 'drone' }],                       // 점프→숙이기
+    [{ dx: 0, k: 'drone' }, { dx: 195, k: 'block' }],                       // 숙이기→점프
+    [{ dx: 0, k: 'tall' }],                                                 // 2단 점프
+    [{ dx: 0, k: 'ceil', len: 230 }],                                       // 길게 숙이기
+    [{ dx: 0, k: 'block' }, { dx: 160, k: 'block' }, { dx: 320, k: 'block' }],
+    [{ dx: 0, k: 'drone' }, { dx: 170, k: 'droneHigh' }, { dx: 320, k: 'block' }],
+  ],
+  3: [
+    [{ dx: 0, k: 'block' }, { dx: 165, k: 'drone' }, { dx: 340, k: 'block' }],   // 점프→숙→점프
+    [{ dx: 0, k: 'tall' }, { dx: 260, k: 'ceil' }],                              // 2단점프→급강하→숙이기
+    [{ dx: 0, k: 'drone' }, { dx: 155, k: 'drone' }],
+    [{ dx: 0, k: 'ceil', len: 260 }, { dx: 370, k: 'block' }],
+    [{ dx: 0, k: 'block' }, { dx: 150, k: 'tall' }],
+    [{ dx: 0, k: 'drone' }, { dx: 175, k: 'block' }, { dx: 330, k: 'drone' }],   // 숙→점프→급강하→숙
+    [{ dx: 0, k: 'block' }, { dx: 155, k: 'block' }, { dx: 310, k: 'drone' }, { dx: 470, k: 'block' }],
+  ],
+};
+
+function makeObstacle(k, x, len) {
+  if (k === 'block')     return { x, y: GROUND_Y, w: 30 + Math.random() * 16, h: 46 + Math.random() * 14, type: 'block' };
+  if (k === 'tall')      return { x, y: GROUND_Y, w: 30, h: 140, type: 'tall' };
+  if (k === 'drone')     return { x, y: GROUND_Y - 58, w: 46, h: 26, type: 'drone', t: Math.random() * 6.28 };
+  if (k === 'droneHigh') return { x, y: GROUND_Y - 100, w: 46, h: 26, type: 'drone', t: Math.random() * 6.28 };
+  /* ceil */             return { x, y: GROUND_Y - 46, w: len || 180, h: 64, type: 'ceil' };
+}
+
+/* ================= 상태 ================= */
+let state = 'ready';
+let score = 0, speed = 0, distSinceSpawn = 0, nextGap = 0;
+let overTime = 0;
+const player = { x: 150, y: GROUND_Y, vy: 0, w: 40, h: 52, duck: false, onGround: true, jumpsLeft: 2, legT: 0 };
+let downHeld = false, lastMile = 0;
+let obstacles = [];
+let stars = [];
+let best = +(localStorage.getItem(CONFIG.scoreKey + '_best') || 0);
+
+for (let i = 0; i < 60; i++)
+  stars.push({ x: Math.random() * W, y: Math.random() * (GROUND_Y - 40), s: Math.random() * 1.8 + .4, spd: Math.random() * .5 + .15 });
+
+function reset() {
+  score = 0; speed = CONFIG.baseSpeed;
+  player.y = GROUND_Y; player.vy = 0; player.duck = false; player.onGround = true; player.jumpsLeft = 2;
+  obstacles = []; distSinceSpawn = 0; nextGap = 420; lastMile = 0;
+  Sound.startMusic(BGM, () => 116 + speed * .05);   // 속도 붙을수록 BGM도 빨라짐
+  state = 'play';
+}
+
+function gradeOf(s) {
+  return CONFIG.grades.find(g => s >= g.min) || CONFIG.grades[CONFIG.grades.length - 1];
+}
+function saveScore(s) {
+  if (s > best) { best = s; localStorage.setItem(CONFIG.scoreKey + '_best', best); }
+  const list = JSON.parse(localStorage.getItem(CONFIG.scoreKey) || '[]');
+  list.push({ score: s, grade: gradeOf(s).label, ts: Date.now() });
+  list.sort((a, b) => b.score - a.score);
+  localStorage.setItem(CONFIG.scoreKey, JSON.stringify(list.slice(0, 100)));
+}
+
+/* ================= 입력 ================= */
+function jump() {
+  Sound.ensure();   // 브라우저 오디오는 사용자 입력 후에만 시작 가능
+  if (state === 'ready') { reset(); return; }
+  if (state === 'over') { if (performance.now() - overTime > 800) reset(); return; }
+  if (player.jumpsLeft > 0) {
+    const first = player.onGround;
+    player.vy = first ? CONFIG.jumpVel : CONFIG.jumpVel2;
+    player.onGround = false;
+    player.jumpsLeft--;
+    player.duck = false;
+    first ? SFX.jump() : SFX.jump2();
+  }
+}
+addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (!e.repeat) jump();
+  }
+  if (e.code === 'ArrowDown') {
+    e.preventDefault();
+    if (!e.repeat && state === 'play') {
+      // 공중에서 ↓ : 급강하 (점프→숙이기 콤보용)
+      if (!player.onGround) { player.vy = Math.max(player.vy, CONFIG.fastFall); SFX.fall(); }
+      else SFX.duck();
+    }
+    downHeld = true;
+  }
+  if (e.code === 'KeyM' && !e.repeat) Sound.toggleMute();
+});
+addEventListener('keyup', e => { if (e.code === 'ArrowDown') downHeld = false; });
+cv.addEventListener('pointerdown', jump);
+
+/* ================= 스폰 ================= */
+function spawnPattern() {
+  const tier = speed < 500 ? 1 : speed < 680 ? 2 : 3;
+  // 하위 티어 패턴도 가끔 섞어서 완급 조절
+  const pool = Math.random() < .25 && tier > 1 ? PATTERNS[tier - 1] : PATTERNS[tier];
+  const pat = pool[Math.floor(Math.random() * pool.length)];
+  // 속도에 비례해 간격 확대 → 동작 간 시간 간격 유지 (dx·mult/speed ≈ dx/baseSpeed)
+  const mult = speed / CONFIG.baseSpeed;
+  let width = 0;
+  for (const p of pat) {
+    const o = makeObstacle(p.k, W + 40 + p.dx * mult, p.len);
+    obstacles.push(o);
+    width = Math.max(width, p.dx * mult + o.w);
+  }
+  // 패턴 사이 숨 고르기: 0.55~0.85초 분량
+  nextGap = width + speed * (.55 + Math.random() * .3);
+}
+
+/* ================= 업데이트 ================= */
+function update(dt) {
+  if (state !== 'play') {
+    stars.forEach(s => { s.x -= s.spd * 30 * dt; if (s.x < 0) s.x = W; });
+    return;
+  }
+  speed = Math.min(CONFIG.maxSpeed, speed + CONFIG.accel * dt);
+  score += speed * dt * .05;
+
+  // 100점 단위 마일스톤 효과음
+  const mile = Math.floor(score / 100);
+  if (mile > lastMile) { lastMile = mile; SFX.mile(); }
+
+  // 플레이어 물리
+  player.vy += CONFIG.gravity * dt;
+  player.y += player.vy * dt;
+  if (player.y >= GROUND_Y) {
+    if (!player.onGround) SFX.land();
+    player.y = GROUND_Y; player.vy = 0;
+    player.onGround = true; player.jumpsLeft = 2;
+  }
+  player.duck = downHeld && player.onGround;
+  player.legT += dt * (speed / 40);
+
+  // 장애물
+  distSinceSpawn += speed * dt;
+  if (distSinceSpawn >= nextGap) { distSinceSpawn = 0; spawnPattern(); }
+  obstacles.forEach(o => { o.x -= speed * dt; if (o.type === 'drone') o.t += dt * 4; });
+  obstacles = obstacles.filter(o => o.x + o.w > -60);
+  stars.forEach(s => { s.x -= s.spd * speed * .12 * dt; if (s.x < 0) s.x = W; });
+
+  // 충돌 (AABB, 히트박스 축소로 억울한 죽음 방지)
+  const ph = player.duck ? 28 : player.h;
+  const px = player.x - player.w / 2 + 6, py = player.y - ph + 4;
+  const pw = player.w - 12, phh = ph - 8;
+  for (const o of obstacles) {
+    let oy, oh;
+    if (o.type === 'drone') { oy = o.y + Math.sin(o.t) * 6; oh = o.h; }
+    else if (o.type === 'ceil') { oy = o.y - o.h; oh = o.h; }
+    else { oy = o.y - o.h; oh = o.h - 4; }
+    const ox = o.x + 4, ow = o.w - 8;
+    if (px < ox + ow && px + pw > ox && py < oy + oh && py + phh > oy) {
+      state = 'over'; overTime = performance.now(); saveScore(Math.floor(score));
+      Sound.stopMusic(); SFX.crash(); gradeJingle(gradeOf(Math.floor(score)).label);
+      break;
+    }
+  }
+}
+
+/* ================= 그리기 ================= */
+function drawPlayer() {
+  const ph = player.duck ? 28 : player.h;
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.fillStyle = '#00ffc8';
+  ctx.shadowColor = '#00ffc8'; ctx.shadowBlur = 12;
+  ctx.fillRect(-player.w / 2, -ph, player.w, ph - 14);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(2, -ph + 8, 10, 8);
+  ctx.fillStyle = '#00ffc8';
+  if (player.onGround && state === 'play') {
+    const a = Math.sin(player.legT) * 8;
+    ctx.fillRect(-14 + a, -14, 9, 14);
+    ctx.fillRect(5 - a, -14, 9, 14);
+  } else {
+    ctx.fillRect(-14, -12, 9, 12);
+    ctx.fillRect(5, -12, 9, 12);
+  }
+  ctx.restore();
+}
+
+function drawObstacle(o) {
+  ctx.save();
+  if (o.type === 'drone') {
+    const y = o.y + Math.sin(o.t) * 6;
+    ctx.fillStyle = '#ff5f9e';
+    ctx.shadowColor = '#ff5f9e'; ctx.shadowBlur = 10;
+    ctx.fillRect(o.x, y, o.w, o.h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(o.x + 8, y + 8, o.w - 16, o.h - 16);
+    ctx.strokeStyle = '#ff5f9e'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(o.x - 6, y - 4); ctx.lineTo(o.x + o.w + 6, y - 4);
+    ctx.stroke();
+  } else if (o.type === 'ceil') {
+    // 낮은 천장: 위에서 매달린 바 — 숙여서 통과
+    ctx.strokeStyle = '#b09aff'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = o.x + 14; x < o.x + o.w; x += 46) { ctx.moveTo(x, 0); ctx.lineTo(x, o.y - o.h); }
+    ctx.stroke();
+    ctx.fillStyle = '#b09aff';
+    ctx.shadowColor = '#b09aff'; ctx.shadowBlur = 10;
+    ctx.fillRect(o.x, o.y - o.h, o.w, o.h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(10,10,18,.45)';
+    for (let x = o.x + 6; x < o.x + o.w - 8; x += 20) ctx.fillRect(x, o.y - o.h + 6, 10, o.h - 12);
+  } else {
+    const c = o.type === 'tall' ? '#ff8f4a' : '#ffb03a';
+    ctx.fillStyle = c;
+    ctx.shadowColor = c; ctx.shadowBlur = 10;
+    ctx.fillRect(o.x, o.y - o.h, o.w, o.h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(10,10,18,.4)';
+    for (let yy = o.y - o.h + 8; yy < o.y - 6; yy += 12) ctx.fillRect(o.x + 4, yy, o.w - 8, 4);
+  }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#3a4a6a';
+  stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+
+  ctx.strokeStyle = '#2a3550'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, GROUND_Y + 1); ctx.lineTo(W, GROUND_Y + 1); ctx.stroke();
+  ctx.fillStyle = '#1a2238';
+  const off = (score * 12) % 46;
+  for (let x = -off; x < W; x += 46) ctx.fillRect(x, GROUND_Y + 8, 24, 3);
+
+  obstacles.forEach(drawObstacle);
+  drawPlayer();
+
+  ctx.fillStyle = '#e8f0ff';
+  ctx.font = 'bold 26px Consolas, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(String(Math.floor(score)).padStart(6, '0'), W - 24, 44);
+  ctx.fillStyle = '#556';
+  ctx.font = '14px Consolas, monospace';
+  ctx.fillText('BEST ' + String(best).padStart(6, '0'), W - 24, 66);
+  ctx.fillStyle = '#445';
+  ctx.fillText('M: 소리 ' + (Sound.muted ? 'OFF' : 'ON'), W - 24, H - 16);
+
+  if (state === 'ready') {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#00ffc8';
+    ctx.font = 'bold 42px "Malgun Gothic", sans-serif';
+    ctx.fillText('네온 러너', W / 2, H / 2 - 80);
+    ctx.fillStyle = '#e8f0ff';
+    ctx.font = '19px "Malgun Gothic", sans-serif';
+    ctx.fillText('스페이스바: 점프 (공중에서 한 번 더 = 2단 점프)', W / 2, H / 2 - 28);
+    ctx.fillText('↓: 숙이기 · 공중에서 ↓ = 급강하', W / 2, H / 2 + 4);
+    ctx.fillStyle = '#8892a6';
+    ctx.fillText('스페이스바를 눌러 시작', W / 2, H / 2 + 52);
+  }
+
+  if (state === 'over') {
+    const g = gradeOf(Math.floor(score));
+    ctx.fillStyle = 'rgba(10,10,18,.82)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = g.color;
+    ctx.shadowColor = g.color; ctx.shadowBlur = 30;
+    ctx.font = 'bold 130px "Segoe UI", sans-serif';
+    ctx.fillText(g.label, W / 2, H / 2 + 10);
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+    ctx.fillText(g.msg, W / 2, H / 2 + 55);
+    ctx.fillStyle = '#e8f0ff';
+    ctx.font = 'bold 30px Consolas, monospace';
+    ctx.fillText('SCORE  ' + Math.floor(score), W / 2, H / 2 - 105);
+    ctx.fillStyle = '#8892a6';
+    ctx.font = '17px "Malgun Gothic", sans-serif';
+    ctx.fillText('스페이스바를 눌러 재시작', W / 2, H - 46);
+  }
+}
+
+/* ================= 메인 루프 ================= */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
