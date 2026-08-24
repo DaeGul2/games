@@ -42,13 +42,36 @@ function ShooterArt() {
   );
 }
 
+/* 접시 위에 음식이 쌓였다가 기우는 모습 */
+function TowerArt() {
+  return (
+    <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden>
+      <motion.g
+        animate={{ rotate: [-4, 4, -4] }}
+        transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ originX: '38px', originY: '58px' }}
+      >
+        <ellipse cx="38" cy="27" rx="9" ry="9" fill="#0d2415" />
+        <ellipse cx="38" cy="27" rx="5.5" ry="5.5" fill="#f2f0e4" />
+        <circle cx="38" cy="27" r="2.2" fill="#ffd23f" />
+        <path d="M22 46 Q22 36 38 36 Q54 36 54 46 Z" fill="#efe0c0" />
+        <rect x="18" y="46" width="40" height="9" rx="4.5" fill="#c67e26" />
+      </motion.g>
+      <rect x="12" y="57" width="52" height="6" rx="3" fill="#9aa6c4" />
+      <rect x="30" y="63" width="16" height="4" rx="2" fill="#4d5570" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [runnerScores, setRunnerScores] = useState<ScoreRecord[]>([]);
   const [shooterScores, setShooterScores] = useState<ScoreRecord[]>([]);
+  const [towerScores, setTowerScores] = useState<ScoreRecord[]>([]);
 
   const refresh = useCallback(() => {
     setRunnerScores(getScores(KEYS.runner));
     setShooterScores(getScores(KEYS.shooter));
+    setTowerScores(getScores(KEYS.tower));
   }, []);
 
   useEffect(() => {
@@ -62,7 +85,7 @@ export default function Home() {
     };
   }, [refresh]);
 
-  const totalPlays = runnerScores.length + shooterScores.length;
+  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length;
 
   function onReset() {
     if (!confirm('모든 게임 기록을 삭제할까요? (되돌릴 수 없음)')) return;
@@ -174,6 +197,20 @@ export default function Home() {
           ]}
           controls="MOUSE / 자동 사격"
         />
+        <GameCard
+          index={2}
+          to="/tower"
+          title="K-푸드 타워"
+          tagline="무게중심을 지배하라"
+          accent="#ffb03a"
+          art={<TowerArt />}
+          bullets={[
+            '실제 물리 엔진 — 중력만 작용합니다',
+            '음식 10종, 모양이 곧 성격 (김밥은 굴러갑니다)',
+            '혼자 점수 도전 · 둘이서 번갈아 대전',
+          ]}
+          controls="←→ ↑ / SPACE"
+        />
       </section>
 
       {/* ===== 순위표 ===== */}
@@ -190,6 +227,7 @@ export default function Home() {
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Leaderboard title="네온 러너 TOP 10" accent="#00ffc8" records={runnerScores} delay={0.44} />
           <Leaderboard title="벡터 스트라이크 TOP 10" accent="#b09aff" records={shooterScores} delay={0.52} />
+          <Leaderboard title="K-푸드 타워 TOP 10" accent="#ffb03a" records={towerScores} delay={0.6} />
         </div>
       </section>
 

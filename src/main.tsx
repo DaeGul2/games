@@ -5,6 +5,7 @@ import Layout from './ui/Layout';
 import Home from './routes/Home';
 import RunnerPage from './routes/RunnerPage';
 import ShooterPage from './routes/ShooterPage';
+import TowerPage from './routes/TowerPage';
 import './styles/global.css';
 
 const router = createBrowserRouter([
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
       { path: '/', element: <Home /> },
       { path: '/runner', element: <RunnerPage /> },
       { path: '/shooter', element: <ShooterPage /> },
+      { path: '/tower', element: <TowerPage /> },
     ],
   },
 ]);
