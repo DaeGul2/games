@@ -12,6 +12,7 @@
 
 type Ctx = CanvasRenderingContext2D;
 type V = [number, number];
+type V3 = [number, number, number];
 
 export interface Part {
   /** 볼록 다각형 꼭짓점 (로컬 좌표) */
@@ -126,7 +127,7 @@ const CHICKEN_MEAT: V[] = [
   [-9, -15], [7, -22], [23, -14], [28, 1], [18, 18], [-1, 19], [-11, 6],
 ];
 const CHICKEN_BONE: V[] = [
-  [-35, 1], [-14, -7], [-11, 6], [-33, 13],
+  [-39, -3], [-13, -9], [-11, 8], [-37, 12],
 ];
 
 /* ═══════════════════════════════════════════
@@ -382,6 +383,13 @@ export const FOODS: FoodDef[] = [
       ]);
       leaf();
       c.fill();
+      // 주름진 잎끝
+      for (const [lx, ly, lr] of [[-9, -28, 6.4], [0, -31, 7], [9, -28, 6.4]] as V3[]) {
+        c.beginPath();
+        c.arc(lx, ly, lr, Math.PI, Math.PI * 2);
+        c.closePath();
+        c.fill();
+      }
       rim(c, leaf, 'rgba(255,180,140,.35)', 1.3);
       // 잎맥
       c.strokeStyle = 'rgba(255,248,220,.3)';
@@ -476,7 +484,7 @@ export const FOODS: FoodDef[] = [
     frictionStatic: 0.8,
     restitution: 0.03,
     density: 0.0028,
-    bbox: { w: 64, h: 41 },
+    bbox: { w: 67, h: 41 },
     draw(c) {
       // 뼈
       const bone = () => poly(c, CHICKEN_BONE);
@@ -484,10 +492,17 @@ export const FOODS: FoodDef[] = [
       bone();
       c.fill();
       rim(c, bone, 'rgba(255,255,250,.45)', 1.3);
-      c.fillStyle = '#e8e0c8';
+      // 뼈 끝 관절 — 작은 크기에서도 '닭다리'로 읽히게 하는 핵심 단서
+      c.fillStyle = '#fffaee';
       c.beginPath();
-      c.arc(-33, 7, 4.6, 0, Math.PI * 2);
+      c.arc(-37, -1, 5.4, 0, Math.PI * 2);
+      c.arc(-36, 9, 5.4, 0, Math.PI * 2);
       c.fill();
+      c.strokeStyle = 'rgba(190,180,150,.6)';
+      c.lineWidth = 1.1;
+      c.beginPath();
+      c.arc(-37, -1, 5.4, 0, Math.PI * 2);
+      c.stroke();
       // 튀김옷 고기
       const meat = () => poly(c, CHICKEN_MEAT);
       c.fillStyle = lin(c, -9, -20, 26, 18, [

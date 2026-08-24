@@ -154,15 +154,31 @@ export function createTower(cv: HTMLCanvasElement): () => void {
   }
 
   /* ===== 진행 ===== */
-  /** 낙하 시작 지점(화면 기준 126px) — 상단 HUD와 겹치지 않는 높이 */
+  /**
+   * 낙하 시작 지점. 탑 바로 위(85px)에서 놓는다 — 고정 높이로 두면 초반 낙하거리가
+   * 400px에 달해 착지 충격만으로 탑이 흩어진다. 단 화면 상단 HUD 아래로는 올리지 않는다.
+   */
   function spawnY() {
-    return -camY + 126;
+    return Math.max(-camY + 130, towerTop() - 85);
+  }
+
+  /** 접시 위를 치운다 (메뉴 복귀·재시작 공통) */
+  function clearWorld() {
+    for (const p of pieces) Composite.remove(engine.world, p.body);
+    pieces = [];
+    camY = 0;
+    camTarget = 0;
+  }
+
+  function toMenu() {
+    sound.stopMusic();
+    clearWorld();
+    state = 'menu';
   }
 
   function reset(m: Mode) {
     mode = m;
-    for (const p of pieces) Composite.remove(engine.world, p.body);
-    pieces = [];
+    clearWorld();
     score = 0; placed = 0; turn = 0; player = 1; winner = 0;
     camY = 0; camTarget = 0; shake = 0;
     cur = pickFood(0); next = pickFood(1);
@@ -259,7 +275,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
   function press() {
     sound.ensure();
     if (state === 'menu') { reset('solo'); return; }
-    if (state === 'over') { if (performance.now() - overT > 700) state = 'menu'; return; }
+    if (state === 'over') { if (performance.now() - overT > 700) toMenu(); return; }
     if (state === 'aim') drop();
   }
 
@@ -280,7 +296,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     if (e.code === 'KeyM') sound.toggleMute();
     if (e.code === 'KeyG') showCom = !showCom;
     if (e.code === 'KeyF') showFps = !showFps;
-    if (e.code === 'KeyR' && state !== 'menu') { sound.stopMusic(); state = 'menu'; }
+    if (e.code === 'KeyR' && state !== 'menu') toMenu();
   }, opts);
   window.addEventListener('keyup', e => held.delete(e.code), opts);
   window.addEventListener('blur', () => { held.clear(); rotHeld = false; dragging = false; }, opts);
@@ -350,15 +366,19 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     }
     for (const p of pieces) p.t += dt;
 
-    if (state === 'fall') {
-      fallT += dt;
+    // 낙하 판정은 조준 중에도 해야 한다. 안착한 뒤에도 조각이 천천히 미끄러져
+    // 접시를 벗어나는 일이 있는데, 'fall' 상태에서만 보면 다음 턴까지 눈치채지 못한다.
+    if (state === 'aim' || state === 'fall') {
       const bad = fallen();
       if (bad) {
         // 떨어뜨린 사람이 패배. 혼자 모드는 그대로 종료
         gameOver(mode === 'duo' ? (bad.owner === 2 ? 2 : 1) : 0);
-      } else if (fallT > CONFIG.settleMin && (settledNow() || fallT > CONFIG.settleMax)) {
-        SFX.land();
-        nextTurn();
+      } else if (state === 'fall') {
+        fallT += dt;
+        if (fallT > CONFIG.settleMin && (settledNow() || fallT > CONFIG.settleMax)) {
+          SFX.land();
+          nextTurn();
+        }
       }
     }
 
@@ -716,17 +736,19 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.stroke();
     }
 
-    ctx.save();
-    ctx.translate(0, camY);
-    drawPlate();
-    for (const p of pieces) drawPiece(p);
-    if (state === 'aim') drawGhost();
-    if (showCom) drawCom();
-    ctx.restore();
+    if (state !== 'menu') {
+      ctx.save();
+      ctx.translate(0, camY);
+      drawPlate();
+      for (const p of pieces) drawPiece(p);
+      if (state === 'aim') drawGhost();
+      if (showCom) drawCom();
+      ctx.restore();
+    }
 
     // 높이 표시
     const h = Math.max(0, PLATE_Y - towerTop());
-    if (h > 4) {
+    if (h > 4 && state !== 'menu') {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#4a5070';
       ctx.font = 'bold 14px Consolas, monospace';
