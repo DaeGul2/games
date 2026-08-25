@@ -30,7 +30,7 @@ const CONFIG = {
     { min: 500, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
     { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
   ] as Grade[],
-  plateW: 168,
+  plateW: 252,
   turnTime: 15,        // 턴 제한시간(초). 넘기면 자동 낙하 — 부스 회전율을 위해
   moveSpeed: 300,      // px/s
   rotSpeed: 2.5,       // rad/s
@@ -406,10 +406,11 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.beginPath();
     ctx.roundRect(x - CONFIG.plateW / 2 + 5, y + 2, CONFIG.plateW - 10, 3.5, 2);
     ctx.fill();
-    // 굽
+    // 굽 — 접시 폭에 비례
+    const footW = CONFIG.plateW * 0.4;
     ctx.fillStyle = '#3a4058';
     ctx.beginPath();
-    ctx.roundRect(x - 34, y + 18, 68, 12, 3);
+    ctx.roundRect(x - footW / 2, y + 18, footW, 12, 3);
     ctx.fill();
   }
 
