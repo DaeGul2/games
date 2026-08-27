@@ -43,61 +43,14 @@ a {
   text-decoration: none;
 }
 
-/* ===== 배경 레이어: 그리드 + 오로라 + 스캔라인 ===== */
+/* ===== 배경 레이어 — 조용하게 =====
+   색색 빛망울과 흐르는 그리드가 게임 뒤에서 계속 움직여 정신사나웠다.
+   이제 아주 옅은 세로 그라디언트만 남긴다. */
 .bg-layer {
   position: fixed;
   inset: 0;
   z-index: -1;
-  overflow: hidden;
-  background:
-    radial-gradient(1200px 700px at 50% -10%, rgba(176, 154, 255, 0.16), transparent 60%),
-    radial-gradient(900px 600px at 10% 100%, rgba(0, 255, 200, 0.1), transparent 60%),
-    radial-gradient(900px 600px at 95% 80%, rgba(255, 95, 158, 0.1), transparent 60%),
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
-}
-
-/* 원근감 있는 네온 그리드 — 아래쪽으로 흐름 */
-.bg-grid {
-  position: absolute;
-  left: -50%;
-  right: -50%;
-  bottom: -30%;
-  height: 90%;
-  background-image:
-    linear-gradient(rgba(120, 140, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 140, 255, 0.16) 1px, transparent 1px);
-  background-size: 64px 64px;
-  transform: perspective(340px) rotateX(62deg);
-  transform-origin: 50% 100%;
-  animation: gridflow 2.6s linear infinite;
-  mask-image: linear-gradient(to top, #000 10%, transparent 78%);
-  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 78%);
-}
-
-@keyframes gridflow {
-  to {
-    background-position: 0 64px, 0 0;
-  }
-}
-
-/* CRT 스캔라인 */
-.bg-scan {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.022) 0 1px,
-    transparent 1px 3px
-  );
-  pointer-events: none;
-}
-
-/* 떠다니는 빛망울 */
-.bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.4;
+  background: linear-gradient(180deg, #06060d 0%, #0a0a14 100%);
 }
 
 /* ===== 공통 컴포넌트 ===== */

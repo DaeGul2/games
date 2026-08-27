@@ -18,11 +18,12 @@
  * ── 적 체력 모형
  *     H(w) = 목표교전시간 × DPS기준선(w),   DPS기준선(w) = DPS0 · G^w
  *
- *   여기서 G는 감으로 정한 게 아니라 **게이트 뽑기를 10,000판 돌려 잰 중앙값 성장률**이다
- *   (scripts 없이 scratchpad에서 arrowBalance를 그대로 불러 측정).
- *   기준선은 고정이므로, 잘 고른 사람은 기준선을 앞질러 적을 녹이고
- *   못 고른 사람은 뒤처져 죽는다. 고르는 행위에 의미가 생긴다.
+ *   여기서 G는 감으로 정한 게 아니라 **아이템 줍기를 대량으로 돌려 잰 중앙값 성장률**이다.
+ *   기준선은 고정이므로, 부지런히 주운 사람은 기준선을 앞질러 적을 녹이고
+ *   흘린 사람은 뒤처져 적이 새어 나온다. 줍는 행위에 의미가 생긴다.
  */
+
+import { type SpriteKey } from '../lib/sprites';
 
 /* ===== 시작 수치 ===== */
 export const BASE = {
@@ -48,104 +49,125 @@ export const RATE_CAP = BASE.rate * 3.2;
 export interface Stats {
   n: number;
   dmg: number;
+  /** 영구 공격 배수 */
   mul: number;
   rate: number;
   pierce: number;
   hp: number;
   maxHp: number;
   shield: number;
+  /** 일시 공격 배수 (×2·×3·×10 아이템) — burstT 동안만 유지 */
+  burst: number;
+  burstT: number;
 }
 
 export function initialStats(): Stats {
   return {
     n: BASE.n, dmg: BASE.dmg, mul: BASE.mul, rate: BASE.rate,
     pierce: BASE.pierce, hp: BASE.hp, maxHp: BASE.hp, shield: 0,
+    burst: 1, burstT: 0,
   };
 }
 
 /** 관통은 뒤의 적까지 맞히므로 실효 화력이 오른다 (한 발이 평균 이만큼 더 일한다) */
 export const pierceBonus = (p: number) => 1 + 0.18 * (p - 1);
 
+/** 지금 이 순간의 실효 공격 배수 (영구 × 일시) */
+export const effMul = (s: Stats) => s.mul * (s.burstT > 0 ? s.burst : 1);
+
 /** 초당 총 피해량 */
 export function dps(s: Stats) {
+  return s.n * s.dmg * effMul(s) * s.rate * pierceBonus(s.pierce);
+}
+
+/** 영구 스탯만으로 본 화력 — 기준선 비교·성장률 측정용 (일시 버프 제외) */
+export function baseDps(s: Stats) {
   return s.n * s.dmg * s.mul * s.rate * pierceBonus(s.pierce);
 }
 
 /** 한 발당 피해 — 화면에 그리는 개수를 제한해도 총 화력이 변하지 않게 보정한다 */
 export function damagePerArrow(s: Stats) {
   const shown = Math.min(s.n, VISUAL_N_CAP);
-  return s.dmg * s.mul * (s.n / shown);
+  return s.dmg * effMul(s) * (s.n / shown);
+}
+
+/** 일시 버프 갱신 — 매 프레임 호출 */
+export function tickBuffs(s: Stats, dt: number) {
+  if (s.burstT > 0) {
+    s.burstT -= dt;
+    if (s.burstT <= 0) { s.burstT = 0; s.burst = 1; }
+  }
+}
+
+/** 큰 배수 아이템 — 잠깐 폭발적으로 세지고 끝난다. 영구로 쌓이면 화력이 10^19까지 폭주했다 */
+export const BURST_SECS = 7;
+function burst(s: Stats, k: number) {
+  // 이미 버프 중이면 더 큰 쪽을 남기고 시간을 새로 준다
+  s.burst = Math.max(s.burst, k);
+  s.burstT = BURST_SECS;
 }
 
 export function shownArrows(s: Stats) {
   return Math.min(s.n, VISUAL_N_CAP);
 }
 
-/* ===== 게이트 =====
- * 매번 두 장을 뽑아 하나만 고르게 한다. 가중치는 뽑히는 빈도.
- * 공격 계열이 80, 생존 계열이 20 — 생존만 고르면 화력이 기준선에 못 미쳐 결국 막힌다.
+/* ===== 아이템 =====
+ * 길 위에 K-푸드가 떠내려온다. 좌우로 움직여 **주워 먹으면** 그 자리에서 세진다.
+ * 예전엔 두 장 중 하나를 고르는 게이트였는데, 라스트 워처럼 길에 뿌려두고
+ * 몸으로 주우러 가는 편이 조작 하나(좌우)로 훨씬 잘 붙는다.
+ *
+ * 배수가 큰 것(×2·×3·×10)을 섞은 이유 — 이 장르의 맛은 숫자가 폭발하는 데 있다.
+ * 대신 큰 배수일수록 가중치를 낮춰, 평균 성장률은 아래 GROWTH에 묶어 둔다.
  */
-export type GateKey = 'add' | 'mulN' | 'dmg' | 'rate' | 'pierce' | 'hp' | 'heal' | 'shield';
+export type ItemKey =
+  | 'n3' | 'n6' | 'nx2' | 'dx2' | 'dx3' | 'dx10'
+  | 'rate' | 'pierce' | 'hp' | 'heal';
 
-export interface Gate {
-  key: GateKey;
-  label: string;
-  /** 짧은 설명 — 부스 손님이 3초 안에 읽어야 한다 */
-  desc: string;
+export interface Item {
+  key: ItemKey;
+  /** 어떤 K-푸드로 그릴지 */
+  sprite: SpriteKey;
+  /** 아이템 위에 크게 찍히는 글자 */
+  tag: string;
+  /** 무엇이 세지는지 (작은 글씨) */
+  what: string;
   color: string;
   weight: number;
   apply: (s: Stats) => void;
 }
 
-export const GATES: Gate[] = [
-  {
-    key: 'add', label: '젓가락 +2', desc: '한 번에 2개 더', color: '#ffc23a', weight: 22,
-    apply: s => { s.n += 2; },
-  },
-  {
-    key: 'mulN', label: '젓가락 ×1.6', desc: '개수가 확 늘어난다', color: '#ff6f5e', weight: 10,
-    apply: s => { s.n = Math.max(s.n + 1, Math.round(s.n * 1.6)); },
-  },
-  {
-    key: 'dmg', label: '공격력 +25%', desc: '한 발이 더 아프게', color: '#ff5f9e', weight: 20,
-    apply: s => { s.mul *= 1.25; },
-  },
-  {
-    key: 'rate', label: '연사 +15%', desc: '더 빠르게 쏜다', color: '#4aa8ff', weight: 16,
-    apply: s => { s.rate = Math.min(RATE_CAP, s.rate * 1.15); },
-  },
-  {
-    key: 'pierce', label: '관통 +1', desc: '적을 뚫고 지나간다', color: '#a97bff', weight: 12,
-    apply: s => { s.pierce += 1; },
-  },
-  {
-    key: 'hp', label: '최대 체력 +30', desc: '더 오래 버틴다', color: '#35d6a4', weight: 10,
-    apply: s => { s.maxHp += 30; s.hp = Math.min(s.maxHp, s.hp + 30); },
-  },
-  {
-    key: 'heal', label: '회복 +50%', desc: '체력을 절반 채운다', color: '#9ede3a', weight: 6,
-    apply: s => { s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.5); },
-  },
-  {
-    key: 'shield', label: '보호막 +1', desc: '한 번은 그냥 막는다', color: '#22c1c3', weight: 4,
-    apply: s => { s.shield += 1; },
-  },
+export const ITEMS: Item[] = [
+  /* ── 영구 성장 (완만) ── */
+  { key: 'n3',  sprite: 'gimbap',     tag: '+2',   what: '젓가락', color: '#ffc23a', weight: 22,
+    apply: s => { s.n += 2; } },
+  { key: 'n6',  sprite: 'sotteok',    tag: '+4',   what: '젓가락', color: '#ffa62b', weight: 9,
+    apply: s => { s.n += 4; } },
+  { key: 'nx2', sprite: 'mandu',      tag: '×1.5', what: '젓가락', color: '#35d6a4', weight: 5,
+    apply: s => { s.n = Math.max(s.n + 2, Math.round(s.n * 1.5)); } },
+  { key: 'dx2', sprite: 'cupramyeon', tag: '+30%', what: '공격력', color: '#ff6f5e', weight: 16,
+    apply: s => { s.mul *= 1.3; } },
+  { key: 'rate', sprite: 'tteokbokki', tag: '+20%', what: '연사', color: '#4aa8ff', weight: 13,
+    apply: s => { s.rate = Math.min(RATE_CAP, s.rate * 1.2); } },
+  { key: 'pierce', sprite: 'hotdog',  tag: '관통',  what: '+1', color: '#a97bff', weight: 9,
+    apply: s => { s.pierce += 1; } },
+  /* ── 생존 ── */
+  { key: 'hp',  sprite: 'chicken',    tag: '+40',  what: '최대 체력', color: '#9ede3a', weight: 8,
+    apply: s => { s.maxHp += 40; s.hp = Math.min(s.maxHp, s.hp + 40); } },
+  { key: 'heal', sprite: 'coinbread', tag: '회복',  what: '체력 절반', color: '#66e0a0', weight: 6,
+    apply: s => { s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.5); } },
+  /* ── 일시 폭발 (7초) — 숫자가 터지는 맛은 여기서 낸다 ── */
+  { key: 'dx3', sprite: 'buldak',     tag: '×3',   what: '7초 공격력', color: '#ff3d2e', weight: 9,
+    apply: s => burst(s, 3) },
+  { key: 'dx10', sprite: 'kimchi',    tag: '×10',  what: '7초 공격력', color: '#ffd700', weight: 3,
+    apply: s => burst(s, 10) },
 ];
 
-const TOTAL_W = GATES.reduce((a, g) => a + g.weight, 0);
+const TOTAL_W = ITEMS.reduce((a, g) => a + g.weight, 0);
 
-export function rollGate(rnd: () => number = Math.random): Gate {
+export function rollItem(rnd: () => number = Math.random): Item {
   let r = rnd() * TOTAL_W;
-  for (const g of GATES) { r -= g.weight; if (r <= 0) return g; }
-  return GATES[0];
-}
-
-/** 서로 다른 두 장을 뽑아 제시한다 */
-export function rollChoices(rnd: () => number = Math.random): [Gate, Gate] {
-  const a = rollGate(rnd);
-  let b = rollGate(rnd);
-  for (let i = 0; i < 8 && b.key === a.key; i++) b = rollGate(rnd);
-  return [a, b];
+  for (const g of ITEMS) { r -= g.weight; if (r <= 0) return g; }
+  return ITEMS[0];
 }
 
 /* ===== 적 =====
@@ -153,12 +175,18 @@ export function rollChoices(rnd: () => number = Math.random): [Gate, Gate] {
  * GROWTH는 게이트 뽑기를 대량으로 돌려 측정한 중앙값 성장률이다. (아래 주석 참고)
  */
 
-/** 게이트 1회당 화력 성장 중앙값 — 시뮬레이션으로 측정한 값 */
-export const GROWTH = 1.215;
+/** 아이템 1개당 화력 성장 중앙값 — 시뮬레이션으로 측정한 값 */
+export const GROWTH = 1.155;
 
-/** w번째 구간에서 기대되는 화력 */
+/**
+ * w번째 구간에서 기대되는 화력.
+ * 한 구간에 아이템이 ITEMS_PER_WAVE개 나오고 그중 평균적으로 얼마나 줍는지까지 반영한다.
+ */
+export const ITEMS_PER_WAVE = 3;
+export const PICKUP_RATE = 0.9;    // 부스 손님 모델이 실제로 줍는 비율 (시뮬레이션 96% 측정, 여유 둠)
+
 export function baselineDps(w: number) {
-  return dps(initialStats()) * Math.pow(GROWTH, w);
+  return dps(initialStats()) * Math.pow(GROWTH, w * ITEMS_PER_WAVE * PICKUP_RATE);
 }
 
 /** 적 종류별 목표 교전시간(초) — 이 시간 안에 녹아야 한다 */
