@@ -29,6 +29,13 @@ function food(ctx: Ctx, key: SpriteKey, r: number, scale = 1, rot = 0) {
   return drawSprite(ctx, key, w, h);
 }
 
+/** 판정원 안에 내접하게 그린다 (아우라 없음 — 최종보스처럼 연출을 따로 얹을 때) */
+function foodInCircle(ctx: Ctx, key: SpriteKey, r: number) {
+  const a = aspectOf(key);
+  const w = (2 * r * 0.96 * a) / Math.sqrt(a * a + 1);
+  return drawSprite(ctx, key, w, w / a);
+}
+
 /**
  * 적임을 알리는 아우라.
  *
@@ -84,16 +91,22 @@ function enemyAura(ctx: Ctx, t: number, R: number, level: 1 | 2 | 3) {
   ctx.restore();
 }
 
-/** 적 = 아우라를 두른 음식. 아우라 크기는 스프라이트를 감싸는 원에 맞춘다 */
+/**
+ * 적 = 아우라를 두른 음식.
+ *
+ * 스프라이트를 **판정원(반지름 r) 안에 내접**시킨다. 예전엔 짧은 쪽을 2r에 맞춰서
+ * 긴 쪽이 판정원 밖으로 크게 삐져나왔다 — 만두는 108%, 핫도그는 377%나 커서
+ * 그림 끝에 맞았는데 판정이 안 나거나 빈 공간이 맞았다. 이제 그림 = 판정 범위다.
+ * (원에 내접하는 최대 사각형: w = 2r·a/√(a²+1), h = w/a)
+ */
 function enemyFood(
   ctx: Ctx, key: SpriteKey, t: number, r: number,
-  scale: number, level: 1 | 2 | 3, rot = 0,
+  level: 1 | 2 | 3, rot = 0,
 ) {
   const a = aspectOf(key);
-  const d = 2 * r * scale;
-  const w = a >= 1 ? d * a : d;
-  const h = a >= 1 ? d : d / a;
-  enemyAura(ctx, t, Math.hypot(w, h) / 2, level);
+  const w = (2 * r * 0.96 * a) / Math.sqrt(a * a + 1);
+  const h = w / a;
+  enemyAura(ctx, t, r, level);
   if (rot) {
     ctx.save();
     ctx.rotate(rot);
@@ -221,7 +234,7 @@ export function drawPlayerShip(ctx: Ctx, t: number) {
 
 /** 잡몹 A — 각진 외계 요격기 (사인파 편대) */
 export function drawInterceptor(ctx: Ctx, t: number, r: number) {
-  if (enemyFood(ctx, 'mandu', t, r, 1.15, 1)) return;   // 잡몹 A — 만두 편대
+  if (enemyFood(ctx, 'mandu', t, r, 1)) return;   // 잡몹 A — 만두 편대
   const s = r / 18;
   ctx.scale(s, s);
   flame(ctx, 0, -14, 4, 12, t + 1, '#ffd9ec', '#ff5f9e');
@@ -268,7 +281,7 @@ export function drawInterceptor(ctx: Ctx, t: number, r: number) {
 
 /** 잡몹 B — 회전 링을 두른 원반 (나선 편대) */
 export function drawSaucer(ctx: Ctx, t: number, r: number) {
-  if (enemyFood(ctx, 'coinbread', t, r, 1.1, 1)) return;  // 잡몹 B — 회전하는 10원빵
+  if (enemyFood(ctx, 'coinbread', t, r, 1)) return;  // 잡몹 B — 회전하는 10원빵
   const s = r / 17;
   ctx.scale(s, s);
 
@@ -319,7 +332,7 @@ export function drawSaucer(ctx: Ctx, t: number, r: number) {
 
 /** 돌진병 — 카미카제 다트 (진행 방향으로 회전된 상태로 호출) */
 export function drawDart(ctx: Ctx, t: number, r: number) {
-  if (enemyFood(ctx, 'hotdog', t, r, 1.3, 3, Math.PI / 2)) return;  // 돌진병 — 궤적까지 남겨 '날아오는 것'으로 읽히게
+  if (enemyFood(ctx, 'hotdog', t, r, 3, Math.PI / 2)) return;  // 돌진병 — 궤적까지 남겨 '날아오는 것'으로 읽히게
   const s = r / 13;
   ctx.scale(s, s);
   flame(ctx, 0, -11, 3.4, 14, t + 2, '#fff0d0', '#ff6a1f');
@@ -358,7 +371,7 @@ export function drawDart(ctx: Ctx, t: number, r: number) {
 
 /** 미사일 발사기 — 중장갑 건십 */
 export function drawGunship(ctx: Ctx, t: number, r: number) {
-  if (enemyFood(ctx, 'cupramyeon', t, r, 1.05, 2)) return;  // 발사기 — 컵라면
+  if (enemyFood(ctx, 'cupramyeon', t, r, 2)) return;  // 발사기 — 컵라면
   const s = r / 22;
   ctx.scale(s, s);
   flame(ctx, -11, -16, 3.4, 10, t + 0.7, '#ffe9c2', '#ffb03a');
@@ -412,7 +425,7 @@ export function drawGunship(ctx: Ctx, t: number, r: number) {
 
 /** 중간보스 — 장갑 순양함 */
 export function drawCruiser(ctx: Ctx, t: number, r: number) {
-  if (enemyFood(ctx, 'tteokbokki', t, r, 1.15, 2)) return;  // 중간보스 — 떡볶이 한 그릇
+  if (enemyFood(ctx, 'tteokbokki', t, r, 2)) return;  // 중간보스 — 떡볶이 한 그릇
   const s = r / 40;
   ctx.scale(s, s);
   flame(ctx, -18, -30, 6, 18, t + 0.3, '#efe0ff', '#b09aff');
@@ -484,7 +497,7 @@ export function drawCruiser(ctx: Ctx, t: number, r: number) {
 
 /** 최종보스 — 전함. phase(1~3)에 따라 색이 달아오른다 */
 export function drawDreadnought(ctx: Ctx, t: number, r: number, phase: number) {
-  if (food(ctx, 'buldak', r, 1.2)) { dreadAura(ctx, t, r, phase); return; }  // 최종보스 — 불닭
+  if (foodInCircle(ctx, 'buldak', r)) { dreadAura(ctx, t, r, phase); return; }  // 최종보스 — 불닭
   const s = r / 52;
   ctx.scale(s, s);
   const tint = phase === 1 ? '#ff5f9e' : phase === 2 ? '#ff8f4a' : '#ff3b3b';

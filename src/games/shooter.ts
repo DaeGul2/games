@@ -179,7 +179,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addSine(n: number) {
     for (let i = 0; i < n; i++) {
       enemies.push({
-        type: 'sine', hp: enemyHp(1), r: 18,
+        type: 'sine', hp: enemyHp(1), r: 30,       // 그림이 판정원에 내접하므로 r이 곧 보이는 크기
         x0: 70 + (W - 140) * (i / Math.max(1, n - 1)),
         y: -40 - (i % 5) * 60 - Math.floor(i / 5) * 220,
         x: 0, t: i * 0.6,
@@ -192,7 +192,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addSpiral(n: number) {
     for (let i = 0; i < n; i++) {
       enemies.push({
-        type: 'spiral', hp: enemyHp(1.3), r: 17,
+        type: 'spiral', hp: enemyHp(1.3), r: 21,
         cx: W / 2, cy: 250,
         rad: 500, theta: (Math.PI * 2 * i) / n,
         targetRad: 90 + (i % 3) * 65,
@@ -204,7 +204,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addLauncher(n: number) {
     for (let i = 0; i < n; i++) {
       enemies.push({
-        type: 'launcher', hp: enemyHp(3), r: 22,
+        type: 'launcher', hp: enemyHp(3), r: 27,
         x: 120 + (W - 240) * (n === 1 ? 0.5 : i / (n - 1)), y: -60, ty: 110 + (i % 2) * 70,
         t: 0, shootCd: 1.8,
       });
@@ -213,7 +213,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addDiver(n: number) {
     for (let i = 0; i < n; i++) {
       enemies.push({
-        type: 'diver', hp: 1, r: 13,
+        type: 'diver', hp: 1, r: 22,
         x: 50 + Math.random() * (W - 100), y: -30 - Math.random() * 260,
         vx: 0, vy: 0, armed: false, spd: 300 + wave * 14, t: 0,
       });
@@ -224,7 +224,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
       const hp = 16 + wave * 3;
       const cx = W * (n === 1 ? 0.5 : 0.3 + 0.4 * i);
       enemies.push({
-        type: 'boss', hp, maxHp: hp, r: 40,
+        type: 'boss', hp, maxHp: hp, r: 58,
         cx, x: cx, y: -80, ty: 150, t: i * 1.5,
         ringCd: 1.6, ringN: Math.min(12 + wave, 26), spin: 0, aimCd: 1.1,
       });
@@ -233,7 +233,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addFinalBoss() {
     const hp = 150;
     enemies.push({
-      type: 'final', hp, maxHp: hp, r: 52,
+      type: 'final', hp, maxHp: hp, r: 70,
       x: W / 2, y: -120, t: 0, entered: false,
       ringCd: 1.6, streamCd: 0.07, streamAng: 0, aimCd: 1.2, homCd: 2.5, spin: 0,
     });
@@ -530,7 +530,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     for (const b of bullets) {
       for (const e of enemies) {
         const dx = b.x - e.x, dy = b.y - e.y;
-        if (dx * dx + dy * dy < (e.r + 4) * (e.r + 4)) {
+        if (dx * dx + dy * dy < (e.r + 3) * (e.r + 3)) {
           b.dead = true; e.hp--;
           if (e.hp > 0) SFX.hit();
           particles.push({ x: b.x, y: b.y, vx: 0, vy: -60, life: 0.15, color: '#fff' });
@@ -564,6 +564,13 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.translate(x, y);
     if (player.inv > 0 && Math.floor(player.inv * 10) % 2 === 0) ctx.globalAlpha = 0.35;
     drawPlayerShip(ctx, time);
+    // 피격 코어 — 실제 판정은 이 작은 원(r=11)이다. 슈팅 관례대로 그림보다 작지만,
+    // 어디가 맞는 곳인지 보여야 억울한 죽음이 없다.
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,255,200,.55)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(0, 0, player.r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 
