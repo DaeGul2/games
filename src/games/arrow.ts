@@ -33,8 +33,9 @@ const CONFIG = {
     { min: 1200, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
     { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
   ] as Grade[],
-  moveSpeed: 470,      // 좌우 이동 속도 px/s
-  scrollSpeed: 90,     // 배경이 흐르는 속도 (전진하는 느낌)
+  moveSpeed: 440,      // 좌우 이동 속도 px/s
+  scrollSpeed: 260,    // 길이 흘러내려오는 속도 — 궁수가 앞으로 달리는 느낌
+  roadPad: 26,         // 길 양옆 길가 폭 (여기로는 못 간다)
 };
 
 /* ===== BGM ===== */
@@ -99,7 +100,7 @@ interface GateRun { y: number; left: Gate; right: Gate; taken: boolean }
 type State = 'ready' | 'play' | 'over';
 
 export function createArrow(cv: HTMLCanvasElement): () => void {
-  const W = 560, H = 760;
+  const W = 400, H = 720;
   const ctx = cv.getContext('2d', { alpha: false })!;
   const fit = Math.min(1, (innerWidth - 40) / W, Math.max(0.5, (innerHeight - 210) / H));
   const quality = new Quality(cv, ctx, W, H, fit);
@@ -125,10 +126,21 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
   let showFps = false;
   let scroll = 0;
   const held = new Set<string>();
-  const stars = Array.from({ length: 70 }, () => ({
-    x: Math.random() * W, y: Math.random() * H,
-    s: Math.random() * 1.7 + 0.4, v: Math.random() * 0.6 + 0.5,
+  /** 길가에 흘러가는 소품 — 풀·돌·등불. 흘러가야 앞으로 가는 게 보인다 */
+  interface Roadside { x: number; y: number; kind: 0 | 1 | 2; s: number }
+  const roadside: Roadside[] = Array.from({ length: 22 }, () => ({
+    x: 0, y: Math.random() * H, kind: 0 as 0 | 1 | 2, s: 1,
   }));
+  const ROAD_L = CONFIG.roadPad, ROAD_R = W - CONFIG.roadPad;
+  function seedRoadside(r: Roadside, y: number) {
+    const left = Math.random() < 0.5;
+    r.x = left ? Math.random() * (ROAD_L - 6) + 3 : ROAD_R + 3 + Math.random() * (ROAD_L - 6);
+    r.y = y;
+    const k = Math.random();
+    r.kind = k < 0.55 ? 0 : k < 0.85 ? 1 : 2;
+    r.s = 0.7 + Math.random() * 0.6;
+  }
+  for (const r of roadside) seedRoadside(r, r.y);
 
   /* ===== 스폰 ===== */
   function spawnEnemy(kind: EnemyKind, x: number, y: number) {
@@ -163,7 +175,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       const r = Math.random();
       const kind: EnemyKind = r < 0.2 && wave > 2 ? 'tank' : r < 0.55 ? 'runner' : 'grunt';
       const sp = ENEMY[kind];
-      spawnEnemy(kind, 40 + Math.random() * (W - 80), -40 - i * (70 + Math.random() * 60) - sp.w);
+      spawnEnemy(kind, ROAD_L + sp.w / 2 + Math.random() * (ROAD_R - ROAD_L - sp.w), -40 - i * (70 + Math.random() * 60) - sp.w);
     }
   }
 
@@ -248,11 +260,11 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
 
   /* ===== 업데이트 ===== */
   function update(dt: number) {
-    scroll = (scroll + CONFIG.scrollSpeed * dt) % 60;
+    scroll = (scroll + CONFIG.scrollSpeed * dt) % 48;
     if (shake > 0) shake = Math.max(0, shake - dt * 40);
     if (hurtT > 0) hurtT -= dt;
 
-    for (const s of stars) { s.y += s.v * CONFIG.scrollSpeed * dt; if (s.y > H) { s.y = -4; s.x = Math.random() * W; } }
+    for (const r of roadside) { r.y += CONFIG.scrollSpeed * dt; if (r.y > H + 20) seedRoadside(r, -20 - Math.random() * 60); }
 
     for (let i = particles.length - 1; i >= 0; i--) {
       const q = particles[i];
@@ -272,7 +284,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     /* 좌우 이동 */
     if (held.has('ArrowLeft')) px -= CONFIG.moveSpeed * dt;
     if (held.has('ArrowRight')) px += CONFIG.moveSpeed * dt;
-    px = Math.max(26, Math.min(W - 26, px));
+    px = Math.max(ROAD_L + 22, Math.min(ROAD_R - 22, px));
 
     /* 자동 발사 — 한 번에 '한 줄'로 나간다 (이 장르의 이름이 그렇다) */
     fireT -= dt;
@@ -280,7 +292,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       fireT = 1 / st.rate;
       const n = shownArrows(st);
       const dmg = damagePerArrow(st);
-      const span = Math.min(W - 40, 12 + n * 9);
+      const span = Math.min(ROAD_R - ROAD_L - 30, 12 + n * 8);
       for (let i = 0; i < n; i++) {
         const t = n === 1 ? 0.5 : i / (n - 1);
         arrows.push({
@@ -374,6 +386,80 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
   }
 
   /* ===== 그리기 ===== */
+  /** 아래로 흘러내려오는 돌길 — 궁수는 제자리, 길이 지나가야 앞으로 가는 것처럼 보인다 */
+  function drawRoad() {
+    // 길가(풀밭)
+    ctx.fillStyle = '#17231a';
+    ctx.fillRect(0, 0, W, H);
+    // 길 본체
+    const TILE = 48;
+    ctx.fillStyle = '#3a3128';
+    ctx.fillRect(ROAD_L, 0, ROAD_R - ROAD_L, H);
+    // 돌 타일 — 줄마다 반 칸씩 어긋나게, 아래로 흐른다
+    const cols = Math.ceil((ROAD_R - ROAD_L) / TILE) + 1;
+    let row = Math.floor(-scroll / TILE) - 2;
+    for (let y = scroll - TILE * 2; y < H; y += TILE, row++) {
+      const off = (row & 1) ? TILE / 2 : 0;
+      for (let c = -1; c < cols; c++) {
+        const x = ROAD_L + c * TILE + off;
+        const x0 = Math.max(ROAD_L, x + 2), x1 = Math.min(ROAD_R, x + TILE - 2);
+        if (x1 <= x0) continue;
+        const shade = (((c * 7 + row * 13) % 5) + 5) % 5 * 0.035;
+        ctx.fillStyle = `rgba(255,230,200,${0.05 + shade})`;
+        ctx.fillRect(x0, y + 2, x1 - x0, TILE - 4);
+      }
+    }
+    // 길 가장자리 경계석
+    ctx.fillStyle = '#5a4d3e';
+    ctx.fillRect(ROAD_L - 4, 0, 4, H);
+    ctx.fillRect(ROAD_R, 0, 4, H);
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    for (let y = scroll - TILE; y < H; y += TILE / 2) {
+      ctx.fillRect(ROAD_L - 4, y, 4, 2);
+      ctx.fillRect(ROAD_R, y, 4, 2);
+    }
+    // 길가 소품
+    for (const r of roadside) {
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      ctx.scale(r.s, r.s);
+      if (r.kind === 0) {
+        // 풀
+        ctx.strokeStyle = '#2f5a34';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-4, 4); ctx.lineTo(-3, -5);
+        ctx.moveTo(0, 4); ctx.lineTo(1, -7);
+        ctx.moveTo(4, 4); ctx.lineTo(4, -4);
+        ctx.stroke();
+      } else if (r.kind === 1) {
+        // 돌
+        ctx.fillStyle = '#4c4a45';
+        ctx.beginPath(); ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.12)';
+        ctx.beginPath(); ctx.ellipse(-1.5, -1.5, 3, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // 등불 — 길이 어디로 이어지는지 알려 주는 표지
+        ctx.fillStyle = '#3b2a1c';
+        ctx.fillRect(-1.5, -14, 3, 18);
+        const gl = ctx.createRadialGradient(0, -16, 1, 0, -16, 16);
+        gl.addColorStop(0, 'rgba(255,190,90,.55)');
+        gl.addColorStop(1, 'rgba(255,190,90,0)');
+        ctx.fillStyle = gl;
+        ctx.beginPath(); ctx.arc(0, -16, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffc861';
+        ctx.beginPath(); ctx.roundRect(-4, -20, 8, 8, 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    // 앞쪽(위)은 안개로 흐리게 — 길이 저 멀리까지 이어지는 느낌
+    const fog = ctx.createLinearGradient(0, 0, 0, 170);
+    fog.addColorStop(0, 'rgba(8,10,14,.92)');
+    fog.addColorStop(1, 'rgba(8,10,14,0)');
+    ctx.fillStyle = fog;
+    ctx.fillRect(0, 0, W, 170);
+  }
+
   function drawPlayer() {
     ctx.save();
     ctx.translate(px, PLAYER_Y);
@@ -387,11 +473,24 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       ctx.arc(0, -4, 30, 0, Math.PI * 2);
       ctx.stroke();
     }
-    // 밥그릇 사수 — 아래에서 젓가락을 쏘아 올린다
-    ctx.fillStyle = 'rgba(0,255,200,.14)';
+    // 밥그릇 궁수 — 활을 앞으로 겨누고 길을 따라 달린다. 살짝 위아래로 흔들려야 뛰는 것처럼 보인다
+    ctx.translate(0, Math.sin(runT * 14) * 1.6);
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.beginPath();
-    ctx.ellipse(0, 16, 26, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 18, 24, 6, 0, 0, Math.PI * 2);
     ctx.fill();
+    // 활 — 앞(위)을 향해 당겨진 호
+    ctx.strokeStyle = '#8a5a2b';
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, -14, 30, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-28, -23); ctx.lineTo(0, -6); ctx.lineTo(28, -23);
+    ctx.stroke();
     const g = ctx.createLinearGradient(0, -14, 0, 16);
     g.addColorStop(0, '#eef4ff');
     g.addColorStop(0.5, '#9fb4dd');
@@ -506,7 +605,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
 
   function drawHud() {
     // 체력
-    const bw = 190, bx = 18, by = 20;
+    const bw = 150, bx = 14, by = 18;
     ctx.fillStyle = 'rgba(0,0,0,.5)';
     ctx.beginPath(); ctx.roundRect(bx, by, bw, 14, 7); ctx.fill();
     const frac = Math.max(0, st.hp / st.maxHp);
@@ -518,23 +617,23 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillText(`${Math.ceil(st.hp)} / ${st.maxHp}`, bx + 6, by + 11);
     if (st.shield > 0) {
       ctx.fillStyle = '#22c1c3';
-      ctx.fillText(`보호막 ${st.shield}`, bx + bw + 10, by + 11);
+      ctx.fillText(`보호막 ${st.shield}`, bx + bw + 8, by + 11);
     }
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#e8f0ff';
-    ctx.font = 'bold 27px Consolas, monospace';
-    ctx.fillText(String(score).padStart(6, '0'), W - 18, 40);
-    ctx.fillStyle = '#556';
-    ctx.font = '12px Consolas, monospace';
-    ctx.fillText('BEST ' + String(best).padStart(6, '0'), W - 18, 58);
+    ctx.font = 'bold 24px Consolas, monospace';
+    ctx.fillText(String(score).padStart(6, '0'), W - 14, 36);
+    ctx.fillStyle = '#8a8fa8';
+    ctx.font = '11px Consolas, monospace';
+    ctx.fillText('BEST ' + String(best).padStart(6, '0'), W - 14, 52);
 
     // 화력 — 이 숫자가 커지는 걸 보는 게 이 장르의 맛이다
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffb03a';
     ctx.font = 'bold 15px Consolas, monospace';
     ctx.fillText(`화력 ${Math.round(dps(st)).toLocaleString()}`, bx, by + 38);
-    ctx.fillStyle = '#6b7490';
+    ctx.fillStyle = '#9aa3bf';
     ctx.font = '11px Consolas, monospace';
     ctx.fillText(
       `젓가락 ${st.n} · 공격 x${st.mul.toFixed(1)} · 연사 ${st.rate.toFixed(1)} · 관통 ${st.pierce}`,
@@ -545,18 +644,18 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillStyle = ratio >= 1 ? '#4ade80' : '#ff8a8a';
     ctx.fillText(`기준선 대비 ${(ratio * 100).toFixed(0)}%`, bx, by + 71);
 
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#8892a6';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#c7cde0';
     ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
-    ctx.fillText(`구간 ${wave}`, W / 2, 34);
+    ctx.fillText(`구간 ${wave}`, W - 14, 72);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#333a55';
-    ctx.font = '11px Consolas, monospace';
-    ctx.fillText('마우스/←→ 이동 · 발사는 자동 · R 처음으로 · M 소리', 18, H - 14);
+    ctx.fillStyle = 'rgba(255,240,220,.35)';
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillText('마우스/←→ 이동 · 발사 자동 · R 처음 · M 소리', 14, H - 10);
     if (showFps) {
       ctx.textAlign = 'right';
-      ctx.fillText(quality.fps.toFixed(0) + ' FPS', W - 18, H - 14);
+      ctx.fillText(quality.fps.toFixed(0) + ' FPS', W - 14, H - 10);
     }
   }
 
@@ -565,10 +664,10 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillRect(0, 0, W, H);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd76a';
-    ctx.font = 'bold 42px "Malgun Gothic", sans-serif';
+    ctx.font = 'bold 40px "Malgun Gothic", sans-serif';
     ctx.fillText('K-푸드 사격', W / 2, 140);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '17px "Malgun Gothic", sans-serif';
+    ctx.font = '15px "Malgun Gothic", sans-serif';
     ctx.fillText('좌우로만 움직이세요. 발사는 알아서 합니다', W / 2, 178);
 
     ctx.fillStyle = '#cfd7f5';
@@ -581,10 +680,10 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     const demo: [Gate, number][] = [[GATES[0], 0], [GATES[2], W / 2]];
     for (const [g, x] of demo) {
       ctx.fillStyle = g.color + '22';
-      ctx.fillRect(x + 40, gy, W / 2 - 80, gh);
+      ctx.fillRect(x + 16, gy, W / 2 - 32, gh);
       ctx.strokeStyle = g.color + 'aa';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 41.5, gy + 1.5, W / 2 - 83, gh - 3);
+      ctx.strokeRect(x + 17.5, gy + 1.5, W / 2 - 35, gh - 3);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 16px "Malgun Gothic", sans-serif';
       ctx.fillText(g.label, x + W / 4, gy + 25);
@@ -594,7 +693,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     }
 
     ctx.fillStyle = '#8892a6';
-    ctx.font = '14px "Malgun Gothic", sans-serif';
+    ctx.font = '13px "Malgun Gothic", sans-serif';
     ctx.fillText('고를수록 젓가락이 불어나고, 적의 체력도 같이 커집니다', W / 2, 396);
     ctx.fillStyle = '#ff8a8a';
     ctx.fillText('못 죽인 적이 아래로 내려오면 체력이 깎입니다', W / 2, 422);
@@ -618,7 +717,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillStyle = g.color;
     ctx.shadowColor = g.color;
     ctx.shadowBlur = 30;
-    ctx.font = 'bold 128px "Segoe UI", sans-serif';
+    ctx.font = 'bold 116px "Segoe UI", sans-serif';
     ctx.fillText(g.label, W / 2, H / 2);
     ctx.shadowBlur = 0;
     ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
@@ -642,18 +741,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
-    ctx.fillStyle = '#07070e';
-    ctx.fillRect(0, 0, W, H);
-    for (const s of stars) {
-      ctx.fillStyle = `rgba(190,205,255,${0.14 + s.v * 0.3})`;
-      ctx.fillRect(s.x, s.y, s.s, s.s * 2.4);
-    }
-    // 전진하는 느낌의 바닥 눈금
-    ctx.strokeStyle = 'rgba(120,130,200,.08)';
-    ctx.lineWidth = 1;
-    for (let y = scroll; y < H; y += 60) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
+    drawRoad();
 
     if (state === 'play' || state === 'over') {
       drawGate();
@@ -680,7 +768,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       ctx.strokeStyle = 'rgba(255,95,110,.18)';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([8, 8]);
-      ctx.beginPath(); ctx.moveTo(0, LEAK_Y); ctx.lineTo(W, LEAK_Y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ROAD_L, LEAK_Y); ctx.lineTo(ROAD_R, LEAK_Y); ctx.stroke();
       ctx.setLineDash([]);
 
       drawHud();
