@@ -185,8 +185,15 @@ export const GROWTH = 1.155;
 export const ITEMS_PER_WAVE = 3;
 export const PICKUP_RATE = 0.9;    // 부스 손님 모델이 실제로 줍는 비율 (시뮬레이션 96% 측정, 여유 둠)
 
+/**
+ * 초반 유예 — 처음 GRACE 구간은 아직 아이템을 몇 개 못 주웠으므로 기준선을
+ * 시작 화력에 묶어 둔다. 이게 없으면 젓가락 2개로 HP 100짜리 3줄을 맞아야 했다.
+ */
+export const GRACE_WAVES = 3;
+
 export function baselineDps(w: number) {
-  return dps(initialStats()) * Math.pow(GROWTH, w * ITEMS_PER_WAVE * PICKUP_RATE);
+  const eff = Math.max(0, w - GRACE_WAVES);
+  return dps(initialStats()) * Math.pow(GROWTH, eff * ITEMS_PER_WAVE * PICKUP_RATE);
 }
 
 /** 적 종류별 목표 교전시간(초) — 이 시간 안에 녹아야 한다 */
@@ -231,9 +238,9 @@ export const WAVE = {
   /** 몇 구간마다 보스 */
   bossEvery: 5,
   /** w구간에 나오는 적 수 */
-  count: (w: number) => Math.min(22, 3 + Math.floor(w * 0.65)),
-  /** w구간의 이동 속도 배수 — 내려오는 속도가 붙어야 놓친 적이 바로 아프다 */
-  speedMul: (w: number) => 1 + w * 0.028,
+  count: (w: number) => Math.min(22, 2 + Math.floor(w * 0.6)),
+  /** w구간의 이동 속도 배수 — 초반은 느리게 다가오고, 구간이 오르며 빨라진다 */
+  speedMul: (w: number) => 0.72 + Math.min(w, 10) * 0.028 + Math.max(0, w - 10) * 0.02,
 };
 
 /** 처치 점수 — 구간이 오를수록 커지지만 체력 증가보다는 완만하게 */

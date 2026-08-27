@@ -31,12 +31,13 @@ import {
 /* ===== 설정 ===== */
 const CONFIG = {
   grades: [
-    // 시뮬레이션 분포로 정했다. 부스 손님 모델(반응 0.3초·오차 있음) 812~15,504 · 중앙 2,945
-    // 요령파(아이템 최우선) 761~24,963 · 중앙 3,103. 둘 다 약 1분 40초 · 14구간에서 죽는다.
-    { min: 12000, label: 'S', color: '#ffd700', msg: '전설의 사수!' },
-    { min: 6000, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
-    { min: 3000, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
-    { min: 1500, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
+    // 시뮬레이션 분포로 정했다 (초반 유예 3구간 반영 후).
+    // 부스 손님 모델(반응 0.3초·오차 있음) 중앙 12,560 · 23구간 · 2분 53초
+    // 요령파(아이템 최우선) 중앙 13,563 · 24구간 · 2분 57초
+    { min: 40000, label: 'S', color: '#ffd700', msg: '전설의 사수!' },
+    { min: 22000, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
+    { min: 12000, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
+    { min: 5000, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
     { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
   ] as Grade[],
 };
@@ -172,11 +173,13 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     }
     // 아이템은 어느 구간이든 뿌린다 — 주우러 갈 이유가 계속 있어야 한다
     for (let i = 0; i < ITEMS_PER_WAVE; i++) {
-      // 좌·우 번갈아, 가장자리 쪽에 — 가만히 있으면 못 줍고 움직여야 먹힌다
+      // 좌·우 번갈아, 가장자리 쪽에 — 가만히 있으면 못 줍고 움직여야 먹힌다.
+      // 첫 구간의 첫 아이템만 도로 중앙에 — "주우면 세진다"를 조작 없이 알려주는 튜토리얼
       const side = i % 2 === 0 ? -1 : 1;
+      const x = wave === 1 && i === 0 ? 0 : side * (0.45 + Math.random() * 0.4);
       drops.push({
         item: rollItem(),
-        x: side * (0.45 + Math.random() * 0.4),
+        x,
         z: -0.05 - i * 0.3 - Math.random() * 0.12,
         taken: false,
       });
