@@ -3,7 +3,22 @@
  * 주자는 발이 (0,0)에 오는 로컬 좌표계, 장애물은 월드 좌표로 그린다.
  */
 
+import { drawSprite, type SpriteKey } from '../lib/sprites';
+
 type Ctx = CanvasRenderingContext2D;
+
+/**
+ * 장애물 자리에 음식 스프라이트를 채워 그린다.
+ * 히트박스(x,y,w,h)를 그대로 채우므로 보이는 것과 부딪히는 것이 같다.
+ * 이미지가 아직 없으면 false — 호출 측이 기존 벡터 그림으로 넘어간다.
+ */
+function fillBox(ctx: Ctx, key: SpriteKey, x: number, y: number, w: number, h: number) {
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  const ok = drawSprite(ctx, key, w, h);
+  ctx.restore();
+  return ok;
+}
 type Stops = [number, string][];
 
 /**
@@ -269,6 +284,16 @@ export function drawSpeedLines(ctx: Ctx, x: number, y: number, speed: number, t:
 
 /** 지상 장애물 — 경고 스트라이프가 들어간 화물 컨테이너 */
 export function drawCrate(ctx: Ctx, x: number, y: number, w: number, h: number, tall: boolean) {
+  // 2단 점프용 높은 장애물은 컵을 3단으로 쌓아 높이를 채운다
+  if (tall) {
+    const n = 3, ph = h / n;
+    let drawn = true;
+    for (let i = 0; i < n; i++) drawn = fillBox(ctx, 'cupteok', x, y - h + i * ph, w, ph) && drawn;
+    if (drawn) return;
+  } else if (fillBox(ctx, 'cupramyeon', x, y - h, w, h)) {
+    return;
+  }
+
   const base = tall ? '#ff8f4a' : '#ffb03a';
   const dark = tall ? '#8a3c0f' : '#8a5a06';
   const wk = Math.round(w); // 캐시 키 (폭은 랜덤 실수라 반올림해 종류를 제한)
@@ -314,6 +339,16 @@ export function drawCrate(ctx: Ctx, x: number, y: number, w: number, h: number, 
 
 /** 공중 장애물 — 회전 로터와 스캔 아이가 달린 호버 드론 */
 export function drawDrone(ctx: Ctx, x: number, y: number, w: number, h: number, t: number) {
+  // 날아오는 장애물 — 만두는 비율(1.81)이 히트박스(1.77)와 거의 같아 왜곡이 없다
+  if (fillBox(ctx, 'mandu', x, y, w, h)) {
+    // 떠 있는 느낌을 위한 잔상
+    ctx.fillStyle = `rgba(255,200,120,${0.16 + Math.abs(Math.sin(t * 6)) * 0.1})`;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h + 5, w * 0.42, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
   const cx = x + w / 2;
   const cy = y + h / 2;
 
@@ -372,6 +407,19 @@ export function drawDrone(ctx: Ctx, x: number, y: number, w: number, h: number, 
 /** 낮은 천장 — 케이블에 매달린 배관 구조물 */
 export function drawCeiling(ctx: Ctx, x: number, y: number, w: number, h: number) {
   const top = y - h;
+
+  if (fillBox(ctx, 'gimbap', x, top, w, h)) {
+    // 매달린 줄
+    ctx.strokeStyle = '#5a4d8a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let cx = x + 16; cx < x + w; cx += 48) {
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, top + 4);
+    }
+    ctx.stroke();
+    return;
+  }
 
   // 케이블
   ctx.strokeStyle = '#5a4d8a';

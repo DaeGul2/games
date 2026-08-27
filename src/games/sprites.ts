@@ -4,8 +4,30 @@
  * 호출 측에서 translate/rotate를 잡아준 뒤 사용.
  */
 
+import { drawSprite, aspectOf, type SpriteKey } from '../lib/sprites';
+
 type Ctx = CanvasRenderingContext2D;
 type Stops = [number, string][];
+
+/**
+ * 적 자리에 음식 스프라이트를 그린다. 판정은 반지름 r의 원이므로,
+ * 스프라이트의 **짧은 쪽**을 2r에 맞춰 히트박스를 항상 덮게 한다.
+ * 이미지가 아직 없으면 false — 아래의 기존 벡터 그림으로 넘어간다.
+ */
+function food(ctx: Ctx, key: SpriteKey, r: number, scale = 1, rot = 0) {
+  const a = aspectOf(key);
+  const d = 2 * r * scale;
+  const w = a >= 1 ? d * a : d;
+  const h = a >= 1 ? d : d / a;
+  if (rot) {
+    ctx.save();
+    ctx.rotate(rot);
+    const ok = drawSprite(ctx, key, w, h);
+    ctx.restore();
+    return ok;
+  }
+  return drawSprite(ctx, key, w, h);
+}
 
 /**
  * 그라디언트 캐시 — 캔버스 그라디언트는 user space로 정의되고 칠할 때 현재 변환이
@@ -124,6 +146,7 @@ export function drawPlayerShip(ctx: Ctx, t: number) {
 
 /** 잡몹 A — 각진 외계 요격기 (사인파 편대) */
 export function drawInterceptor(ctx: Ctx, t: number, r: number) {
+  if (food(ctx, 'mandu', r, 1.15)) return;   // 잡몹 A — 만두 편대
   const s = r / 18;
   ctx.scale(s, s);
   flame(ctx, 0, -14, 4, 12, t + 1, '#ffd9ec', '#ff5f9e');
@@ -170,6 +193,7 @@ export function drawInterceptor(ctx: Ctx, t: number, r: number) {
 
 /** 잡몹 B — 회전 링을 두른 원반 (나선 편대) */
 export function drawSaucer(ctx: Ctx, t: number, r: number) {
+  if (food(ctx, 'coinbread', r, 1.1)) return;  // 잡몹 B — 회전하는 10원빵
   const s = r / 17;
   ctx.scale(s, s);
 
@@ -220,6 +244,7 @@ export function drawSaucer(ctx: Ctx, t: number, r: number) {
 
 /** 돌진병 — 카미카제 다트 (진행 방향으로 회전된 상태로 호출) */
 export function drawDart(ctx: Ctx, t: number, r: number) {
+  if (food(ctx, 'hotdog', r, 1.15, Math.PI / 4)) return;  // 돌진병 — 핫도그가 진행 방향으로
   const s = r / 13;
   ctx.scale(s, s);
   flame(ctx, 0, -11, 3.4, 14, t + 2, '#fff0d0', '#ff6a1f');
@@ -258,6 +283,7 @@ export function drawDart(ctx: Ctx, t: number, r: number) {
 
 /** 미사일 발사기 — 중장갑 건십 */
 export function drawGunship(ctx: Ctx, t: number, r: number) {
+  if (food(ctx, 'cupramyeon', r, 1.05)) return;  // 발사기 — 컵라면
   const s = r / 22;
   ctx.scale(s, s);
   flame(ctx, -11, -16, 3.4, 10, t + 0.7, '#ffe9c2', '#ffb03a');
@@ -311,6 +337,7 @@ export function drawGunship(ctx: Ctx, t: number, r: number) {
 
 /** 중간보스 — 장갑 순양함 */
 export function drawCruiser(ctx: Ctx, t: number, r: number) {
+  if (food(ctx, 'tteokbokki', r, 1.15)) return;  // 중간보스 — 떡볶이 한 그릇
   const s = r / 40;
   ctx.scale(s, s);
   flame(ctx, -18, -30, 6, 18, t + 0.3, '#efe0ff', '#b09aff');
@@ -382,6 +409,7 @@ export function drawCruiser(ctx: Ctx, t: number, r: number) {
 
 /** 최종보스 — 전함. phase(1~3)에 따라 색이 달아오른다 */
 export function drawDreadnought(ctx: Ctx, t: number, r: number, phase: number) {
+  if (food(ctx, 'buldak', r, 1.2)) { dreadAura(ctx, t, r, phase); return; }  // 최종보스 — 불닭
   const s = r / 52;
   ctx.scale(s, s);
   const tint = phase === 1 ? '#ff5f9e' : phase === 2 ? '#ff8f4a' : '#ff3b3b';
@@ -481,6 +509,7 @@ export function drawDreadnought(ctx: Ctx, t: number, r: number, phase: number) {
 
 /** 무기 강화 아이템 — 회전 링을 두른 발광 캡슐 */
 export function drawPowerCapsule(ctx: Ctx, t: number) {
+  if (powerFood(ctx, t)) return;  // 강화 아이템 — 양념치킨
   ctx.fillStyle = rad(ctx, 'pw:glow', 0, 0, 1, 0, 0, 22, [
     [0, 'rgba(0,255,200,.55)'], [1, 'rgba(0,255,200,0)'],
   ]);
@@ -512,4 +541,71 @@ export function drawPowerCapsule(ctx: Ctx, t: number) {
   ctx.textBaseline = 'middle';
   ctx.fillText('P', 0, 0.5);
   ctx.textBaseline = 'alphabetic';
+}
+
+
+/**
+ * 최종보스 페이즈 연출 — 스프라이트 위에 겹치는 열기.
+ * 봉지 그림 자체는 안 변하므로, 페이즈는 **테두리 불꽃 고리**로 읽히게 한다.
+ * 플레이어가 지금 몇 페이즈인지 한눈에 알아야 패턴에 대응할 수 있다.
+ */
+function dreadAura(ctx: Ctx, t: number, r: number, phase: number) {
+  const p = Math.min(3, Math.max(1, phase));
+  const heat = [0, 0.45, 0.8, 1.2][p];
+  const col = ['', '255,180,60', '255,110,30', '255,50,20'][p];
+  const pulse = 1 + Math.sin(t * (2 + p * 1.6)) * 0.05 * p;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // 바깥 열기
+  ctx.fillStyle = rad(ctx, `dread:${p}`, 0, 0, r * 0.55, 0, 0, r * 1.5, [
+    [0, `rgba(${col},${heat * 0.34})`],
+    [0.55, `rgba(${col},${heat * 0.16})`],
+    [1, `rgba(${col},0)`],
+  ]);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.5 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 페이즈 고리 — 개수로도 구분되게 (1개 / 2개 / 3개)
+  ctx.strokeStyle = `rgba(${col},${0.55 + 0.15 * p})`;
+  for (let i = 0; i < p; i++) {
+    ctx.lineWidth = 2.6 - i * 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, (r * 1.06 + i * 7) * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // 3페이즈에서는 불티가 튄다
+  if (p === 3) {
+    ctx.fillStyle = 'rgba(255,220,120,.85)';
+    for (let i = 0; i < 7; i++) {
+      const a = t * 1.7 + i * 0.9;
+      const d = r * (1.1 + ((i * 0.13 + t * 0.35) % 0.45));
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * d, Math.sin(a) * d, 1.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/** 강화 아이템 — 양념치킨 + 회전하는 금색 링 */
+function powerFood(ctx: Ctx, t: number) {
+  ctx.save();
+  ctx.rotate(t * 1.6);
+  ctx.strokeStyle = 'rgba(255,215,0,.65)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 19, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle = `rgba(255,190,60,${0.14 + Math.abs(Math.sin(t * 4)) * 0.12})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, 16, 0, Math.PI * 2);
+  ctx.fill();
+  return food(ctx, 'chicken', 13, 1.1);
 }

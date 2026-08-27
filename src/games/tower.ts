@@ -159,7 +159,10 @@ export function createTower(cv: HTMLCanvasElement): () => void {
    * 400px에 달해 착지 충격만으로 탑이 흩어진다. 단 화면 상단 HUD 아래로는 올리지 않는다.
    */
   function spawnY() {
-    return Math.max(-camY + 130, towerTop() - 85);
+    // 조각이 클수록 아래쪽 끝이 멀어지므로, 조각 높이에 맞춰 간격을 잡는다.
+    // 그래야 큰 그릇도 작은 만두와 같은 세기로 내려앉는다.
+    const gap = cur.bbox.h / 2 + 34;
+    return Math.max(-camY + 130, towerTop() - gap);
   }
 
   /** 접시 위를 치운다 (메뉴 복귀·재시작 공통) */
