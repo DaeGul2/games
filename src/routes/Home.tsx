@@ -63,15 +63,44 @@ function TowerArt() {
   );
 }
 
+/* 작은 구슬 둘이 붙어 큰 구슬로 합쳐지는 모습 */
+function MergeArt() {
+  return (
+    <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden>
+      <motion.circle
+        cx="26" cy="46" r="11" fill="#ffc23a" fillOpacity="0.85"
+        animate={{ cx: [26, 33, 26], opacity: [1, 0.4, 1] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.circle
+        cx="50" cy="46" r="11" fill="#35d6a4" fillOpacity="0.85"
+        animate={{ cx: [50, 43, 50], opacity: [1, 0.4, 1] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.circle
+        cx="38" cy="44" r="17" fill="#ff6f5e" fillOpacity="0.9"
+        animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ originX: '38px', originY: '44px' }}
+      />
+      <rect x="10" y="62" width="56" height="5" rx="2.5" fill="#5b6486" />
+      <rect x="8" y="20" width="4" height="46" rx="2" fill="#5b6486" />
+      <rect x="64" y="20" width="4" height="46" rx="2" fill="#5b6486" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [runnerScores, setRunnerScores] = useState<ScoreRecord[]>([]);
   const [shooterScores, setShooterScores] = useState<ScoreRecord[]>([]);
   const [towerScores, setTowerScores] = useState<ScoreRecord[]>([]);
+  const [mergeScores, setMergeScores] = useState<ScoreRecord[]>([]);
 
   const refresh = useCallback(() => {
     setRunnerScores(getScores(KEYS.runner));
     setShooterScores(getScores(KEYS.shooter));
     setTowerScores(getScores(KEYS.tower));
+    setMergeScores(getScores(KEYS.merge));
   }, []);
 
   useEffect(() => {
@@ -85,7 +114,7 @@ export default function Home() {
     };
   }, [refresh]);
 
-  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length;
+  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length + mergeScores.length;
 
   function onReset() {
     if (!confirm('모든 게임 기록을 삭제할까요? (되돌릴 수 없음)')) return;
@@ -211,6 +240,20 @@ export default function Home() {
           ]}
           controls="←→ ↑ / SPACE"
         />
+        <GameCard
+          index={3}
+          to="/merge"
+          title="K-푸드 합치기"
+          tagline="같은 음식을 붙여 진화시켜라"
+          accent="#ff8a5c"
+          art={<MergeArt />}
+          bullets={[
+            '같은 음식끼리 닿으면 다음 단계로 진화',
+            '10원빵부터 떡뽁이 한 그릇까지 12단계',
+            '상자가 넘치면 끝 — 제한시간은 없습니다',
+          ]}
+          controls="MOUSE / SPACE"
+        />
       </section>
 
       {/* ===== 순위표 ===== */}
@@ -228,6 +271,7 @@ export default function Home() {
           <Leaderboard title="네온 러너 TOP 10" accent="#00ffc8" records={runnerScores} delay={0.44} />
           <Leaderboard title="벡터 스트라이크 TOP 10" accent="#b09aff" records={shooterScores} delay={0.52} />
           <Leaderboard title="K-푸드 타워 TOP 10" accent="#ffb03a" records={towerScores} delay={0.6} />
+          <Leaderboard title="K-푸드 합치기 TOP 10" accent="#ff8a5c" records={mergeScores} delay={0.68} />
         </div>
       </section>
 

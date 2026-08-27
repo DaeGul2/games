@@ -65,6 +65,30 @@ export function drawSpriteContain(
   return true;
 }
 
+/**
+ * 반지름 r인 원 **안에 꽉 차게** 그린다.
+ *
+ * 원에 내접하는 최대 사각형을 원본 비율로 구한다 —
+ * w/h = a 이고 √(w²+h²)/2 = r·margin 을 풀면
+ *   w = 2·r·margin·a/√(a²+1),  h = w/a
+ * 길쭉한 김밥이든 동그란 10원빵이든 원 밖으로 삐져나오지 않는다.
+ */
+export function drawInCircle(
+  ctx: CanvasRenderingContext2D,
+  key: SpriteKey,
+  r: number,
+  margin = 0.92,
+): boolean {
+  const img = images.get(key);
+  if (!img) return false;
+  const meta = SPRITES[key];
+  const a = meta.w / meta.h;
+  const w = (2 * r * margin * a) / Math.sqrt(a * a + 1);
+  const h = w / a;
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  return true;
+}
+
 /** 스프라이트의 원본 가로세로 비율 (w / h) */
 export function aspectOf(key: SpriteKey) {
   return SPRITES[key].w / SPRITES[key].h;

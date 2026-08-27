@@ -19,6 +19,7 @@ export const KEYS = {
   runner: 'kfood_arcade_runner',
   shooter: 'kfood_arcade_shooter',
   tower: 'kfood_arcade_tower',
+  merge: 'kfood_arcade_merge',
 } as const;
 
 export function gradeOf(grades: Grade[], s: number): Grade {
