@@ -11,7 +11,7 @@ export default function TowerPage() {
       mount={mount}
       hints={[
         { key: '←→', label: '이동' },
-        { key: '↑', label: '회전' },
+        { key: '↑↓', label: '회전' },
         { key: 'SPACE', label: '놓기' },
         { key: 'G', label: '무게중심 보기' },
       ]}

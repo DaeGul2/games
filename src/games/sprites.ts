@@ -30,6 +30,81 @@ function food(ctx: Ctx, key: SpriteKey, r: number, scale = 1, rot = 0) {
 }
 
 /**
+ * 적임을 알리는 아우라.
+ *
+ * 음식 스프라이트를 그대로 쓰면 "먹는 것"으로 보여서 적인지 아이템인지 헷갈린다.
+ * 특히 돌진병(핫도그)과 강화 아이템은 크기도 색도 비슷해 구분이 안 됐다.
+ * 그래서 적은 전부 **붉은 열기 + 회전하는 조준 링**을 두르고, 아이템은 두르지 않는다.
+ *
+ * level 1 잡몹 · 2 발사기/중간보스 · 3 돌진병(가장 위험, 궤적까지 남긴다)
+ */
+function enemyAura(ctx: Ctx, t: number, R: number, level: 1 | 2 | 3) {
+  const col = ['', '255,72,64', '255,116,32', '255,44,44'][level];
+  const spin = [0, 1.2, 1.8, 3.6][level];
+  const pulse = 1 + Math.sin(t * (3 + level)) * 0.055;
+  const k = Math.round(R);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // 붉은 열기
+  ctx.fillStyle = rad(ctx, `aura:${level}:${k}`, 0, 0, R * 0.45, 0, 0, R * 1.4, [
+    [0, `rgba(${col},${0.3 + level * 0.06})`],
+    [0.55, `rgba(${col},${0.12 + level * 0.03})`],
+    [1, `rgba(${col},0)`],
+  ]);
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 1.4 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 돌진병은 뒤로 궤적을 남긴다 — 진행 방향이 -y이므로 +y 쪽으로
+  if (level === 3) {
+    ctx.fillStyle = lin(ctx, `trail:${k}`, 0, R * 0.4, 0, R * 2.6, [
+      [0, `rgba(${col},.5)`],
+      [1, `rgba(${col},0)`],
+    ]);
+    ctx.beginPath();
+    ctx.moveTo(-R * 0.42, R * 0.4);
+    ctx.quadraticCurveTo(0, R * 2.6, R * 0.42, R * 0.4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 회전하는 조준 링 — 네 조각으로 끊어 '락온' 느낌
+  ctx.rotate(t * spin);
+  ctx.strokeStyle = `rgba(${col},${0.55 + level * 0.12})`;
+  ctx.lineWidth = 1.4 + level * 0.3;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    const a0 = (i * Math.PI) / 2 + 0.3;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 1.1 * pulse, a0, a0 + Math.PI / 2 - 0.6);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** 적 = 아우라를 두른 음식. 아우라 크기는 스프라이트를 감싸는 원에 맞춘다 */
+function enemyFood(
+  ctx: Ctx, key: SpriteKey, t: number, r: number,
+  scale: number, level: 1 | 2 | 3, rot = 0,
+) {
+  const a = aspectOf(key);
+  const d = 2 * r * scale;
+  const w = a >= 1 ? d * a : d;
+  const h = a >= 1 ? d : d / a;
+  enemyAura(ctx, t, Math.hypot(w, h) / 2, level);
+  if (rot) {
+    ctx.save();
+    ctx.rotate(rot);
+    const ok = drawSprite(ctx, key, w, h);
+    ctx.restore();
+    return ok;
+  }
+  return drawSprite(ctx, key, w, h);
+}
+
+/**
  * 그라디언트 캐시 — 캔버스 그라디언트는 user space로 정의되고 칠할 때 현재 변환이
  * 적용되므로, 로컬 좌표계에서 만든 객체를 매 프레임 재사용해도 안전하다.
  * (스프라이트가 수십 개씩 그려지는 후반 웨이브의 할당 비용을 없애기 위함)
@@ -146,7 +221,7 @@ export function drawPlayerShip(ctx: Ctx, t: number) {
 
 /** 잡몹 A — 각진 외계 요격기 (사인파 편대) */
 export function drawInterceptor(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'mandu', r, 1.15)) return;   // 잡몹 A — 만두 편대
+  if (enemyFood(ctx, 'mandu', t, r, 1.15, 1)) return;   // 잡몹 A — 만두 편대
   const s = r / 18;
   ctx.scale(s, s);
   flame(ctx, 0, -14, 4, 12, t + 1, '#ffd9ec', '#ff5f9e');
@@ -193,7 +268,7 @@ export function drawInterceptor(ctx: Ctx, t: number, r: number) {
 
 /** 잡몹 B — 회전 링을 두른 원반 (나선 편대) */
 export function drawSaucer(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'coinbread', r, 1.1)) return;  // 잡몹 B — 회전하는 10원빵
+  if (enemyFood(ctx, 'coinbread', t, r, 1.1, 1)) return;  // 잡몹 B — 회전하는 10원빵
   const s = r / 17;
   ctx.scale(s, s);
 
@@ -244,7 +319,7 @@ export function drawSaucer(ctx: Ctx, t: number, r: number) {
 
 /** 돌진병 — 카미카제 다트 (진행 방향으로 회전된 상태로 호출) */
 export function drawDart(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'hotdog', r, 1.3, Math.PI / 2)) return;  // 돌진병 — 누운 핫도그를 진행 방향으로 세운다
+  if (enemyFood(ctx, 'hotdog', t, r, 1.3, 3, Math.PI / 2)) return;  // 돌진병 — 궤적까지 남겨 '날아오는 것'으로 읽히게
   const s = r / 13;
   ctx.scale(s, s);
   flame(ctx, 0, -11, 3.4, 14, t + 2, '#fff0d0', '#ff6a1f');
@@ -283,7 +358,7 @@ export function drawDart(ctx: Ctx, t: number, r: number) {
 
 /** 미사일 발사기 — 중장갑 건십 */
 export function drawGunship(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'cupramyeon', r, 1.05)) return;  // 발사기 — 컵라면
+  if (enemyFood(ctx, 'cupramyeon', t, r, 1.05, 2)) return;  // 발사기 — 컵라면
   const s = r / 22;
   ctx.scale(s, s);
   flame(ctx, -11, -16, 3.4, 10, t + 0.7, '#ffe9c2', '#ffb03a');
@@ -337,7 +412,7 @@ export function drawGunship(ctx: Ctx, t: number, r: number) {
 
 /** 중간보스 — 장갑 순양함 */
 export function drawCruiser(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'tteokbokki', r, 1.15)) return;  // 중간보스 — 떡볶이 한 그릇
+  if (enemyFood(ctx, 'tteokbokki', t, r, 1.15, 2)) return;  // 중간보스 — 떡볶이 한 그릇
   const s = r / 40;
   ctx.scale(s, s);
   flame(ctx, -18, -30, 6, 18, t + 0.3, '#efe0ff', '#b09aff');
@@ -509,7 +584,6 @@ export function drawDreadnought(ctx: Ctx, t: number, r: number, phase: number) {
 
 /** 무기 강화 아이템 — 회전 링을 두른 발광 캡슐 */
 export function drawPowerCapsule(ctx: Ctx, t: number) {
-  if (powerFood(ctx, t)) return;  // 강화 아이템 — 양념치킨
   ctx.fillStyle = rad(ctx, 'pw:glow', 0, 0, 1, 0, 0, 22, [
     [0, 'rgba(0,255,200,.55)'], [1, 'rgba(0,255,200,0)'],
   ]);
@@ -591,21 +665,3 @@ function dreadAura(ctx: Ctx, t: number, r: number, phase: number) {
   ctx.restore();
 }
 
-/** 강화 아이템 — 양념치킨 + 회전하는 금색 링 */
-function powerFood(ctx: Ctx, t: number) {
-  ctx.save();
-  ctx.rotate(t * 1.6);
-  ctx.strokeStyle = 'rgba(255,215,0,.65)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  ctx.arc(0, 0, 19, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
-  ctx.fillStyle = `rgba(255,190,60,${0.14 + Math.abs(Math.sin(t * 4)) * 0.12})`;
-  ctx.beginPath();
-  ctx.arc(0, 0, 16, 0, Math.PI * 2);
-  ctx.fill();
-  return food(ctx, 'chicken', 13, 1.1);
-}

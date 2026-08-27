@@ -293,8 +293,10 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     if (state === 'menu') {
       if (e.code === 'Digit1' || e.code === 'Space' || e.code === 'Enter') reset('solo');
       if (e.code === 'Digit2') reset('duo');
-    } else if (e.code === 'Space' || e.code === 'ArrowDown' || e.code === 'Enter') {
-      press();
+    } else if (e.code === 'Space') {
+      press();   // 놓기는 스페이스 전용 — ↓는 회전으로 옮겼다
+    } else if (e.code === 'Enter' && state === 'over') {
+      press();   // 결과 화면에서만 엔터로 넘어가기 허용
     }
     if (e.code === 'KeyM') sound.toggleMute();
     if (e.code === 'KeyG') showCom = !showCom;
@@ -350,9 +352,14 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       if (held.has('ArrowRight')) aimX += CONFIG.moveSpeed * dt;
       aimX = Math.max(46, Math.min(W - 46, aimX));
       if (Math.abs(aimX - prevX) > 8) SFX.move();
-      if (held.has('ArrowUp') || held.has('KeyZ') || rotHeld) {
-        aimAngle += CONFIG.rotSpeed * dt;
+      // ↑ 시계 / ↓ 반시계 — 양쪽으로 돌 수 있어야 원하는 각을 빨리 맞춘다
+      let spin = 0;
+      if (held.has('ArrowUp') || rotHeld) spin += 1;
+      if (held.has('ArrowDown')) spin -= 1;
+      if (spin) {
+        aimAngle += CONFIG.rotSpeed * dt * spin;
         if (aimAngle > Math.PI * 2) aimAngle -= Math.PI * 2;
+        if (aimAngle < 0) aimAngle += Math.PI * 2;
       }
       turnLeft -= dt;
       const sec = Math.ceil(turnLeft);
@@ -602,7 +609,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333a55';
     ctx.font = '11px Consolas, monospace';
-    ctx.fillText('←→ 이동 · ↑ 회전 · SPACE 놓기 · G 무게중심 · R 메뉴 · M 소리', 22, H - 18);
+    ctx.fillText('←→ 이동 · ↑↓ 회전 · SPACE 놓기 · G 무게중심 · R 메뉴 · M 소리', 22, H - 18);
     if (showFps) {
       ctx.textAlign = 'right';
       ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 22, H - 18);
