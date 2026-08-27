@@ -158,22 +158,46 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     return null;
   }
 
-  /**
-   * 조각을 치우면서 **근처의 잠든 조각을 깨운다.**
-   * Matter는 접촉 상대가 사라져도 잠든 몸체를 깨우지 않는다. 그래서 벽에 기대 잠든
-   * 구슬은 아래 구슬이 합쳐져 사라져도 그 자리에 떠 있었다 (사용자 제보).
-   */
   function remove(p: Piece) {
-    const { x, y } = p.body.position;
-    const reach = p.def.r + 140;
-    for (const q of pieces) {
-      if (q === p || !q.body.isSleeping) continue;
-      const dx = q.body.position.x - x, dy = q.body.position.y - y;
-      if (dx * dx + dy * dy < reach * reach) Sleeping.set(q.body, false);
-    }
     Composite.remove(engine.world, p.body);
     const i = pieces.indexOf(p);
     if (i >= 0) pieces.splice(i, 1);
+  }
+
+  /**
+   * 받침 없이 잠든 조각을 깨운다 — 매 스텝.
+   *
+   * Matter는 접촉 상대가 사라지거나 굴러가 버려도 잠든 몸체를 깨우지 않는다.
+   * 그래서 벽에 기대 잠든 구슬은 아래가 비어도 공중에 떠 있었다 (사용자 제보).
+   * 합체 순간에만 깨우는 걸로는 부족했다 — 아래 구슬이 굴러가는 경우를 못 잡고,
+   * 깨워도 속도 0이면 한두 프레임 만에 다시 잠들었다.
+   *
+   * 받침 = 바닥에 닿았거나, 다른 구슬이 **아래쪽**에서 접촉 중.
+   * 벽만 닿은 건 받침이 아니다 — 벽은 마찰로 매달리게 할 뿐 떠받치지 않는다.
+   * 벽에 붙어 있으면 옆 구슬이 거의 바로 아래에 있어야만 받침으로 친다 (기울어 끼인 경우 제외).
+   */
+  function wakeUnsupported() {
+    for (const p of pieces) {
+      const b = p.body;
+      if (!b.isSleeping) continue;
+      const r = p.def.r;
+      if (b.position.y + r >= FLOOR_Y - 1.5) continue;
+      const onWall = b.position.x - r <= BOX_L + 1.5 || b.position.x + r >= BOX_R - 1.5;
+      const need = onWall ? 0.9 : 0.35;
+      let supported = false;
+      for (const q of pieces) {
+        if (q === p) continue;
+        const dx = q.body.position.x - b.position.x, dy = q.body.position.y - b.position.y;
+        const rr = r + q.def.r;
+        if (dx * dx + dy * dy > (rr + 1.5) * (rr + 1.5)) continue;
+        if (dy > Math.abs(dx) * need) { supported = true; break; }
+      }
+      if (!supported) {
+        Sleeping.set(b, false);
+        // 깨운 직후 속도 0이면 바로 다시 잠든다 — 살짝 밀어 떨어질 시간을 준다
+        Body.setVelocity(b, { x: b.velocity.x, y: Math.max(b.velocity.y, 0.6) });
+      }
+    }
   }
 
   /* ===== 합치기 =====
@@ -350,6 +374,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     while (acc >= STEP) {
       Engine.update(engine, STEP);
       acc -= STEP;
+      wakeUnsupported();
     }
     resolveMerges();
 
