@@ -7,6 +7,7 @@ import RunnerPage from './routes/RunnerPage';
 import ShooterPage from './routes/ShooterPage';
 import TowerPage from './routes/TowerPage';
 import MergePage from './routes/MergePage';
+import ArrowPage from './routes/ArrowPage';
 import './styles/global.css';
 
 const router = createBrowserRouter([
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
       { path: '/shooter', element: <ShooterPage /> },
       { path: '/tower', element: <TowerPage /> },
       { path: '/merge', element: <MergePage /> },
+      { path: '/arrow', element: <ArrowPage /> },
     ],
   },
 ]);

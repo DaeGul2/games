@@ -20,6 +20,7 @@ export const KEYS = {
   shooter: 'kfood_arcade_shooter',
   tower: 'kfood_arcade_tower',
   merge: 'kfood_arcade_merge',
+  arrow: 'kfood_arcade_arrow',
 } as const;
 
 export function gradeOf(grades: Grade[], s: number): Grade {

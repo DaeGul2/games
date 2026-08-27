@@ -90,17 +90,44 @@ function MergeArt() {
   );
 }
 
+/* 아래에서 젓가락이 한 줄로 뻗어 올라가는 모습 */
+function ArrowArt() {
+  return (
+    <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden>
+      {[16, 26, 38, 50, 60].map((x, i) => (
+        <motion.rect
+          key={x}
+          x={x - 1.5} y="30" width="3" height="16" rx="1.5" fill="#f0d9a6"
+          animate={{ y: [40, 4], opacity: [1, 0] }}
+          transition={{ duration: 0.75, repeat: Infinity, ease: 'linear', delay: i * 0.07 }}
+        />
+      ))}
+      <ellipse cx="38" cy="60" rx="17" ry="7" fill="#9fb4dd" />
+      <ellipse cx="38" cy="56" rx="15" ry="5" fill="#fffdf4" />
+      <motion.circle
+        cx="38" cy="14" r="8" fill="#ff5f6e" fillOpacity="0.85"
+        animate={{ scale: [1, 0.86, 1] }}
+        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ originX: '38px', originY: '14px' }}
+      />
+      <rect x="26" y="3" width="24" height="3" rx="1.5" fill="#4ade80" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [runnerScores, setRunnerScores] = useState<ScoreRecord[]>([]);
   const [shooterScores, setShooterScores] = useState<ScoreRecord[]>([]);
   const [towerScores, setTowerScores] = useState<ScoreRecord[]>([]);
   const [mergeScores, setMergeScores] = useState<ScoreRecord[]>([]);
+  const [arrowScores, setArrowScores] = useState<ScoreRecord[]>([]);
 
   const refresh = useCallback(() => {
     setRunnerScores(getScores(KEYS.runner));
     setShooterScores(getScores(KEYS.shooter));
     setTowerScores(getScores(KEYS.tower));
     setMergeScores(getScores(KEYS.merge));
+    setArrowScores(getScores(KEYS.arrow));
   }, []);
 
   useEffect(() => {
@@ -114,7 +141,7 @@ export default function Home() {
     };
   }, [refresh]);
 
-  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length + mergeScores.length;
+  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length + mergeScores.length + arrowScores.length;
 
   function onReset() {
     if (!confirm('모든 게임 기록을 삭제할까요? (되돌릴 수 없음)')) return;
@@ -254,6 +281,20 @@ export default function Home() {
           ]}
           controls="MOUSE / SPACE"
         />
+        <GameCard
+          index={4}
+          to="/arrow"
+          title="K-푸드 사격"
+          tagline="젓가락을 불려 쓸어담아라"
+          accent="#ffd76a"
+          art={<ArrowArt />}
+          bullets={[
+            '좌우로만 움직이면 발사는 자동',
+            '내려오는 게이트를 골라 화력을 키움',
+            '못 죽인 적이 내려오면 체력이 깎임',
+          ]}
+          controls="MOUSE / ←→"
+        />
       </section>
 
       {/* ===== 순위표 ===== */}
@@ -272,6 +313,7 @@ export default function Home() {
           <Leaderboard title="벡터 스트라이크 TOP 10" accent="#b09aff" records={shooterScores} delay={0.52} />
           <Leaderboard title="K-푸드 타워 TOP 10" accent="#ffb03a" records={towerScores} delay={0.6} />
           <Leaderboard title="K-푸드 합치기 TOP 10" accent="#ff8a5c" records={mergeScores} delay={0.68} />
+          <Leaderboard title="K-푸드 사격 TOP 10" accent="#ffd76a" records={arrowScores} delay={0.76} />
         </div>
       </section>
 
