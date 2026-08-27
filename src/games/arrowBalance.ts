@@ -222,6 +222,9 @@ export function enemyDamage(kind: EnemyKind, w: number) {
  * 처음엔 마릿수를 9로 묶어 뒀는데, 그 위로는 화력만 계속 커져서
  * 잘하는 사람이 6분이 지나도 안 죽었다. 그래서 상한을 크게 올리고 속도도 같이 키운다.
  */
+/** 좌우 이동 속도 (차선 단위/초). 도로 폭이 -1~1이므로 4.0이면 0.5초에 끝에서 끝 */
+export const MOVE_SPEED = 4.0;
+
 export const WAVE = {
   /** 한 구간 길이(초) */
   time: 7.5,

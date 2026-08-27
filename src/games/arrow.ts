@@ -24,7 +24,7 @@ import { drawSprite } from '../lib/sprites';
 import { drawPerson, drawChopsticksHeld, PAL } from './arrowChars';
 import {
   initialStats, dps, baseDps, damagePerArrow, shownArrows, rollItem, tickBuffs, effMul,
-  enemyHp, enemyDamage, enemyScore, baselineDps, WAVE, ITEMS_PER_WAVE,
+  enemyHp, enemyDamage, enemyScore, baselineDps, WAVE, ITEMS_PER_WAVE, MOVE_SPEED,
   type Stats, type Item, type EnemyKind,
 } from './arrowBalance';
 
@@ -39,7 +39,6 @@ const CONFIG = {
     { min: 1500, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
     { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
   ] as Grade[],
-  moveSpeed: 2.4,      // 차선 단위/초 (도로 폭이 -1~1이므로 2.4면 0.8초에 끝에서 끝)
 };
 
 /* 깊이 → 화면 */
@@ -281,8 +280,8 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     tickBuffs(st, dt);
 
     /* 좌우 이동 */
-    if (held.has('ArrowLeft')) px -= CONFIG.moveSpeed * dt;
-    if (held.has('ArrowRight')) px += CONFIG.moveSpeed * dt;
+    if (held.has('ArrowLeft')) px -= MOVE_SPEED * dt;
+    if (held.has('ArrowRight')) px += MOVE_SPEED * dt;
     px = Math.max(-1, Math.min(1, px));
     walk += dt * 9;
 
