@@ -244,7 +244,7 @@ export function drawSaucer(ctx: Ctx, t: number, r: number) {
 
 /** 돌진병 — 카미카제 다트 (진행 방향으로 회전된 상태로 호출) */
 export function drawDart(ctx: Ctx, t: number, r: number) {
-  if (food(ctx, 'hotdog', r, 1.15, Math.PI / 4)) return;  // 돌진병 — 핫도그가 진행 방향으로
+  if (food(ctx, 'hotdog', r, 1.3, Math.PI / 2)) return;  // 돌진병 — 누운 핫도그를 진행 방향으로 세운다
   const s = r / 13;
   ctx.scale(s, s);
   flame(ctx, 0, -11, 3.4, 14, t + 2, '#fff0d0', '#ff6a1f');

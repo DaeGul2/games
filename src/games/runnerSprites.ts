@@ -284,11 +284,13 @@ export function drawSpeedLines(ctx: Ctx, x: number, y: number, speed: number, t:
 
 /** 지상 장애물 — 경고 스트라이프가 들어간 화물 컨테이너 */
 export function drawCrate(ctx: Ctx, x: number, y: number, w: number, h: number, tall: boolean) {
-  // 2단 점프용 높은 장애물은 컵을 3단으로 쌓아 높이를 채운다
+  // 2단 점프용 높은 장애물(30x140)은 라면 봉지를 5단으로 쌓는다.
+  // 봉지 비율(1.13)이 칸 비율(30/28=1.07)과 거의 같아 왜곡이 5%뿐이다.
+  // 컵을 3단으로 쌓으면 칸이 0.64가 되어 28%나 눌린 채 보였다.
   if (tall) {
-    const n = 3, ph = h / n;
+    const n = 5, ph = h / n;
     let drawn = true;
-    for (let i = 0; i < n; i++) drawn = fillBox(ctx, 'cupteok', x, y - h + i * ph, w, ph) && drawn;
+    for (let i = 0; i < n; i++) drawn = fillBox(ctx, 'buldak', x, y - h + i * ph, w, ph) && drawn;
     if (drawn) return;
   } else if (fillBox(ctx, 'cupramyeon', x, y - h, w, h)) {
     return;

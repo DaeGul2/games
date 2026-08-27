@@ -102,11 +102,11 @@ const SPECS: Spec[] = [
     friction: 0.24, frictionStatic: 0.3, restitution: 0.09, density: 0.0015, round: true,
   },
   {
-    key: 'sotteok', desc: '꼬치가 비스듬해 어디에도 안 맞는다', tier: 3, w: 72,
+    key: 'sotteok', desc: '길쭉한 꼬치 — 걸치기 좋다', tier: 3, w: 78,
     friction: 0.46, frictionStatic: 0.56, restitution: 0.04, density: 0.0014,
   },
   {
-    key: 'hotdog', desc: '길고 비스듬 — 굴러떨어지기 쉽다', tier: 3, w: 76,
+    key: 'hotdog', desc: '가장 얇다 — 위에 뭘 올리기 어렵다', tier: 3, w: 84,
     friction: 0.42, frictionStatic: 0.52, restitution: 0.05, density: 0.0013,
   },
 ];

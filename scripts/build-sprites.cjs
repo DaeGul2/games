@@ -29,6 +29,20 @@ const HULL_PTS = 10;    // Matter가 다루기 좋은 꼭짓점 수
 const MIN_FLAT = 0.34;  // 바닥·윗면이 최소 이만큼(스프라이트 폭 대비)은 평평해야 한다
 const MAX_CLIP = 0.16;  // 그래도 높이의 이 비율 이상은 깎지 않는다
 
+/**
+ * 눕혀야 하는 스프라이트 (도 단위, 시계방향).
+ *
+ * 원본이 3/4 시점이라 비스듬히 그려진 것들은 실루엣 바닥이 뾰족하다. 그대로 두면
+ * 물리 도형을 깊게 깎아야 설 자리가 생기고(핫도그는 표시 높이의 17%), 그만큼 그림이
+ * 아래로 파묻혀 보인다. 원본을 주축 각도만큼 돌려 눕히면 원인 자체가 사라진다.
+ * 값은 알파 실루엣의 2차 모멘트로 잰 주축 각도.
+ */
+const ROTATE = {
+  hotdog: -30.8,
+  sotteok: -39.5,
+  chicken: -23.4,
+};
+
 /** 원본 파일명 → 코드에서 쓸 ASCII 키 (URL·import 안전) */
 const KEYS = {
   '10원빵': 'coinbread',
@@ -50,6 +64,48 @@ function stripGlow(img) {
   for (let i = 3; i < d.length; i += 4) {
     if (d[i] < ALPHA_CUT) { d[i] = 0; d[i - 1] = 0; d[i - 2] = 0; d[i - 3] = 0; }
   }
+}
+
+/** 이미지 중심을 기준으로 회전 (양선형 보간, 캔버스는 잘리지 않게 확장) */
+function rotate(img, deg) {
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad), sin = Math.sin(rad);
+  const { width: sw, height: sh, data: sd } = img;
+  const tw = Math.ceil(Math.abs(sw * cos) + Math.abs(sh * sin));
+  const th = Math.ceil(Math.abs(sw * sin) + Math.abs(sh * cos));
+  const out = Buffer.alloc(tw * th * 4);
+  const scx = sw / 2, scy = sh / 2, tcx = tw / 2, tcy = th / 2;
+
+  for (let y = 0; y < th; y++) {
+    for (let x = 0; x < tw; x++) {
+      // 목적지 → 원본 (역변환)
+      const dx = x + 0.5 - tcx, dy = y + 0.5 - tcy;
+      const sx = dx * cos + dy * sin + scx - 0.5;
+      const sy = -dx * sin + dy * cos + scy - 0.5;
+      const x0 = Math.floor(sx), y0 = Math.floor(sy);
+      if (x0 < -1 || y0 < -1 || x0 > sw - 1 || y0 > sh - 1) continue;
+      const fx = sx - x0, fy = sy - y0;
+      let r = 0, g = 0, b = 0, a = 0;
+      // 프리멀티플라이드로 섞어야 투명 가장자리에 검은 테가 안 생긴다
+      for (const [ox, oy, wgt] of [
+        [0, 0, (1 - fx) * (1 - fy)], [1, 0, fx * (1 - fy)],
+        [0, 1, (1 - fx) * fy], [1, 1, fx * fy],
+      ]) {
+        const px = x0 + ox, py = y0 + oy;
+        if (px < 0 || py < 0 || px >= sw || py >= sh) continue;
+        const i = (py * sw + px) * 4, sa = sd[i + 3] / 255;
+        r += sd[i] * sa * wgt; g += sd[i + 1] * sa * wgt; b += sd[i + 2] * sa * wgt;
+        a += sd[i + 3] * wgt;
+      }
+      if (a < 1) continue;
+      const o = (y * tw + x) * 4, wsum = a / 255;
+      out[o] = Math.min(255, Math.round(r / wsum));
+      out[o + 1] = Math.min(255, Math.round(g / wsum));
+      out[o + 2] = Math.min(255, Math.round(b / wsum));
+      out[o + 3] = Math.round(a);
+    }
+  }
+  return { width: tw, height: th, data: out };
 }
 
 function bbox(img) {
@@ -232,6 +288,12 @@ for (const file of fs.readdirSync(SRC).filter(f => f.endsWith('.png')).sort()) {
 
   let img = decode(fs.readFileSync(path.join(SRC, file)));
   stripGlow(img);
+  const deg = ROTATE[key];
+  if (deg) {
+    img = crop(img, bbox(img));   // 먼저 여백을 없애야 회전 후 캔버스가 덜 커진다
+    img = rotate(img, deg);
+    stripGlow(img);               // 보간으로 생긴 옅은 가장자리 정리
+  }
   img = crop(img, bbox(img));
   const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
   img = resize(img, Math.max(1, Math.round(img.width * scale)), Math.max(1, Math.round(img.height * scale)));
@@ -253,6 +315,7 @@ for (const file of fs.readdirSync(SRC).filter(f => f.endsWith('.png')).sort()) {
     `${ko.padEnd(9)} → ${key.padEnd(11)} ${img.width}x${img.height}`.padEnd(38),
     `${(buf.length/1024).toFixed(0)}KB`.padStart(6),
     `평평한 바닥 ${flatBottom.toFixed(0)}px (폭의 ${(flatBottom/img.width*100).toFixed(0)}%)`,
+    deg ? `· ${deg}° 회전` : '',
   );
 }
 
