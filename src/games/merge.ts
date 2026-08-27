@@ -15,7 +15,7 @@
  *   삼각수 Tₙ = n(n+1)/2. 등차면 큰 걸 만들 이유가 없고, 지수면 후반이 폭주한다.
  *   최종 단계(떡뽁이) 둘을 합치면 원작의 수박처럼 **사라지고** 큰 보너스를 준다 — 자리를 비워주는 보상.
  */
-import { Bodies, Body, Composite, Engine, Events, type Pair } from 'matter-js';
+import { Bodies, Body, Composite, Engine, Events, Sleeping, type Pair } from 'matter-js';
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
@@ -158,7 +158,19 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     return null;
   }
 
+  /**
+   * 조각을 치우면서 **근처의 잠든 조각을 깨운다.**
+   * Matter는 접촉 상대가 사라져도 잠든 몸체를 깨우지 않는다. 그래서 벽에 기대 잠든
+   * 구슬은 아래 구슬이 합쳐져 사라져도 그 자리에 떠 있었다 (사용자 제보).
+   */
   function remove(p: Piece) {
+    const { x, y } = p.body.position;
+    const reach = p.def.r + 140;
+    for (const q of pieces) {
+      if (q === p || !q.body.isSleeping) continue;
+      const dx = q.body.position.x - x, dy = q.body.position.y - y;
+      if (dx * dx + dy * dy < reach * reach) Sleeping.set(q.body, false);
+    }
     Composite.remove(engine.world, p.body);
     const i = pieces.indexOf(p);
     if (i >= 0) pieces.splice(i, 1);
