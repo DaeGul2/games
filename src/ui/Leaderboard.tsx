@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ScoreRecord } from '../lib/score';
+import { T } from '../i18n';
 
 interface Props {
   title: string;
@@ -27,7 +28,7 @@ export default function Leaderboard({ title, accent, records, delay = 0 }: Props
       </div>
 
       {records.length === 0 ? (
-        <p style={{ color: 'var(--faint)', fontSize: 13, padding: '18px 2px' }}>아직 기록이 없습니다</p>
+        <p style={{ color: 'var(--faint)', fontSize: 13, padding: '18px 2px' }}>{T.common.noRecords}</p>
       ) : (
         <ol style={{ listStyle: 'none', display: 'grid', gap: 2 }}>
           {records.slice(0, 10).map((r, i) => (

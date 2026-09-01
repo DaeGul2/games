@@ -1,18 +1,19 @@
 import { useCallback } from 'react';
 import GameShell from '../ui/GameShell';
 import { createShooter } from '../games/shooter';
+import { T } from '../i18n';
 
 export default function ShooterPage() {
   const mount = useCallback((cv: HTMLCanvasElement) => createShooter(cv), []);
   return (
     <GameShell
-      title="벡터 스트라이크"
+      title={T.shooter.title}
       accent="#b09aff"
       mount={mount}
       hints={[
-        { key: 'MOUSE', label: '이동 (사격 자동)' },
-        { key: '↑↓←→', label: '키보드 이동' },
-        { key: 'M', label: '음소거' },
+        { key: 'MOUSE', label: T.shooter.hintMouse },
+        { key: '↑↓←→', label: T.shooter.hintKeys },
+        { key: 'M', label: T.common.mute },
       ]}
     />
   );

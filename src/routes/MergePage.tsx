@@ -1,19 +1,20 @@
 import { useCallback } from 'react';
 import GameShell from '../ui/GameShell';
 import { createMerge } from '../games/merge';
+import { T } from '../i18n';
 
 export default function MergePage() {
   const mount = useCallback((cv: HTMLCanvasElement) => createMerge(cv), []);
   return (
     <GameShell
-      title="K-푸드 합치기"
+      title={T.merge.title}
       accent="#ff8a5c"
       mount={mount}
       hints={[
-        { key: 'MOUSE', label: '조준' },
-        { key: '←→', label: '조준' },
-        { key: 'SPACE', label: '놓기' },
-        { key: 'M', label: '음소거' },
+        { key: 'MOUSE', label: T.merge.hintAim },
+        { key: '←→', label: T.merge.hintAim },
+        { key: 'SPACE', label: T.merge.hintDrop },
+        { key: 'M', label: T.common.mute },
       ]}
     />
   );

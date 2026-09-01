@@ -20,15 +20,16 @@ import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
 import { FOODS, pickFood, type FoodDef } from './towerFoods';
+import { T, FONT, tr } from '../i18n';
 
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
   grades: [
-    { min: 3200, label: 'S', color: '#ffd700', msg: '전설의 요리사!' },
-    { min: 2200, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
-    { min: 1200, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
-    { min: 500, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
-    { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
+    { min: 3200, label: 'S', color: '#ffd700', msg: T.tower.gradeS },
+    { min: 2200, label: 'A', color: '#ff5f9e', msg: T.grade.A },
+    { min: 1200, label: 'B', color: '#00ffc8', msg: T.grade.B },
+    { min: 500, label: 'C', color: '#6ea8ff', msg: T.grade.C },
+    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
   ] as Grade[],
   plateW: 252,
   turnTime: 15,        // 턴 제한시간(초). 넘기면 자동 낙하 — 부스 회전율을 위해
@@ -513,7 +514,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.fillStyle = col;
     ctx.font = 'bold 12px Consolas, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(stable ? 'τ ≈ 0  안정' : 'τ ≠ 0  넘어간다', cx, cy - 14);
+    ctx.fillText(stable ? T.tower.stable : T.tower.unstable, cx, cy - 14);
   }
 
   function btn(b: { x: number; y: number; w: number; h: number }, label: string, on: boolean) {
@@ -525,7 +526,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = on ? '#00ffc8' : '#cfd7f5';
-    ctx.font = 'bold 15px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 15px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 + 1);
@@ -542,15 +543,15 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.font = '13px Consolas, monospace';
       ctx.fillText('BEST ' + String(best).padStart(5, '0'), 22, 63);
       ctx.fillStyle = '#8892a6';
-      ctx.fillText(`쌓은 개수 ${placed}`, 22, 82);
+      ctx.fillText(tr(T.tower.placed, { n: placed }), 22, 82);
     } else {
       const col = player === 1 ? '#00ffc8' : '#ff5f9e';
       ctx.fillStyle = col;
-      ctx.font = 'bold 24px "Malgun Gothic", sans-serif';
-      ctx.fillText(`${player}P 차례`, 22, 42);
+      ctx.font = `bold 24px ${FONT}`;
+      ctx.fillText(tr(T.tower.turn, { p: player }), 22, 42);
       ctx.fillStyle = '#556';
       ctx.font = '13px Consolas, monospace';
-      ctx.fillText(`총 ${placed}개 쌓임`, 22, 63);
+      ctx.fillText(tr(T.tower.placedTotal, { n: placed }), 22, 63);
     }
 
     // 제한시간 바
@@ -577,9 +578,9 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#4a5070';
-    ctx.font = '11px "Malgun Gothic", sans-serif';
+    ctx.font = `11px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillText('다음', px, py - 30);
+    ctx.fillText(T.common.next, px, py - 30);
     ctx.save();
     ctx.translate(px, py - 2);
     const s = Math.min(1, 74 / Math.max(next.bbox.w, next.bbox.h));
@@ -587,29 +588,29 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     next.draw(ctx, performance.now() / 1000);
     ctx.restore();
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 13px ${FONT}`;
     ctx.fillText(next.name, px, py + 40);
 
     // 현재 음식 성격 안내 — 접시 위와 겹치지 않게 HUD 열에 붙인다
     if (state === 'aim') {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#cfd7f5';
-      ctx.font = 'bold 14px "Malgun Gothic", sans-serif';
+      ctx.font = `bold 14px ${FONT}`;
       ctx.fillText(cur.name, 22, 124);
       ctx.fillStyle = 'rgba(176,154,255,.85)';
-      ctx.font = '12px "Malgun Gothic", sans-serif';
+      ctx.font = `12px ${FONT}`;
       ctx.fillText(cur.desc, 22, 142);
     }
 
     // 터치 버튼 + 키 안내
     if (state === 'aim') {
-      btn(BTN_R, '↻ 회전', rotHeld);
-      btn(BTN_D, '↓ 놓기', false);
+      btn(BTN_R, T.tower.btnRotate, rotHeld);
+      btn(BTN_D, T.tower.btnDrop, false);
     }
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333a55';
     ctx.font = '11px Consolas, monospace';
-    ctx.fillText('←→ 이동 · ↑↓ 회전 · SPACE 놓기 · G 무게중심 · R 메뉴 · M 소리', 22, H - 18);
+    ctx.fillText(T.tower.keys, 22, H - 18);
     if (showFps) {
       ctx.textAlign = 'right';
       ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 22, H - 18);
@@ -630,18 +631,18 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     ctx.fillRect(0, 0, W, H);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffb03a';
-    ctx.font = 'bold 44px "Malgun Gothic", sans-serif';
-    ctx.fillText('K-푸드 타워', W / 2, 132);
+    ctx.font = `bold 44px ${FONT}`;
+    ctx.fillText(T.tower.title, W / 2, 132);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText('접시 위에 음식을 쌓아 올리세요. 떨어뜨리면 끝입니다.', W / 2, 166);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(T.tower.intro1, W / 2, 166);
     ctx.fillStyle = '#5b6480';
-    ctx.font = '13px "Malgun Gothic", sans-serif';
-    ctx.fillText('중력만 작용합니다 — 무게중심을 지지점 위에 올리는 게 전부입니다', W / 2, 190);
+    ctx.font = `13px ${FONT}`;
+    ctx.fillText(T.tower.intro2, W / 2, 190);
 
     const cards: [string, string, string, string][] = [
-      ['1', '혼자', '무너질 때까지 쌓기', '점수 · 등급이 나옵니다'],
-      ['2', '둘이', '번갈아 쌓기', '먼저 떨어뜨린 쪽이 패배'],
+      ['1', T.tower.soloTitle, T.tower.soloSub, T.tower.soloNote],
+      ['2', T.tower.duoTitle, T.tower.duoSub, T.tower.duoNote],
     ];
     cards.forEach(([k, title, sub, note], i) => {
       const x = W / 2 + (i === 0 ? -152 : 152), y = 300;
@@ -654,13 +655,13 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = col;
-      ctx.font = 'bold 30px "Malgun Gothic", sans-serif';
+      ctx.font = `bold 30px ${FONT}`;
       ctx.fillText(title, x, y - 24);
       ctx.fillStyle = '#cfd7f5';
-      ctx.font = '15px "Malgun Gothic", sans-serif';
+      ctx.font = `15px ${FONT}`;
       ctx.fillText(sub, x, y + 8);
       ctx.fillStyle = '#6b7490';
-      ctx.font = '12px "Malgun Gothic", sans-serif';
+      ctx.font = `12px ${FONT}`;
       ctx.fillText(note, x, y + 32);
       ctx.fillStyle = col;
       ctx.font = 'bold 13px Consolas, monospace';
@@ -669,8 +670,8 @@ export function createTower(cv: HTMLCanvasElement): () => void {
 
     // 음식 목록 미리보기
     ctx.fillStyle = '#4a5070';
-    ctx.font = '12px "Malgun Gothic", sans-serif';
-    ctx.fillText(`음식 ${FOODS.length}종 — 모양이 곧 성격입니다`, W / 2, 424);
+    ctx.font = `12px ${FONT}`;
+    ctx.fillText(tr(T.tower.foodList, { n: FOODS.length }), W / 2, 424);
     const per = W / (FOODS.length + 1);
     FOODS.forEach((f, i) => {
       ctx.save();
@@ -681,8 +682,8 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.restore();
     });
     ctx.fillStyle = '#8892a6';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText('숫자키 또는 화면을 눌러 시작', W / 2, H - 46);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(T.tower.start, W / 2, H - 46);
   }
 
   function drawOver() {
@@ -700,29 +701,29 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.font = 'bold 130px "Segoe UI", sans-serif';
       ctx.fillText(g.label, W / 2, H / 2 + 10);
       ctx.shadowBlur = 0;
-      ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+      ctx.font = `bold 26px ${FONT}`;
       ctx.fillText(g.msg, W / 2, H / 2 + 56);
       ctx.fillStyle = '#8892a6';
-      ctx.font = '15px "Malgun Gothic", sans-serif';
-      ctx.fillText(`${placed}개 쌓음 · 최고 ${best}점`, W / 2, H / 2 + 92);
+      ctx.font = `15px ${FONT}`;
+      ctx.fillText(tr(T.tower.overSolo, { n: placed, best }), W / 2, H / 2 + 92);
     } else {
       const col = winner === 1 ? '#00ffc8' : '#ff5f9e';
       ctx.fillStyle = col;
       ctx.shadowColor = col;
       ctx.shadowBlur = 30;
-      ctx.font = 'bold 74px "Malgun Gothic", sans-serif';
-      ctx.fillText(`${winner}P 승리!`, W / 2, H / 2 + 6);
+      ctx.font = `bold 74px ${FONT}`;
+      ctx.fillText(tr(T.tower.win, { p: winner }), W / 2, H / 2 + 6);
       ctx.shadowBlur = 0;
       ctx.fillStyle = '#cfd7f5';
-      ctx.font = '19px "Malgun Gothic", sans-serif';
-      ctx.fillText(`${winner === 1 ? 2 : 1}P가 떨어뜨렸습니다`, W / 2, H / 2 + 50);
+      ctx.font = `19px ${FONT}`;
+      ctx.fillText(tr(T.tower.dropped, { p: winner === 1 ? 2 : 1 }), W / 2, H / 2 + 50);
       ctx.fillStyle = '#8892a6';
-      ctx.font = '15px "Malgun Gothic", sans-serif';
-      ctx.fillText(`둘이서 ${placed}개까지 쌓았습니다`, W / 2, H / 2 + 84);
+      ctx.font = `15px ${FONT}`;
+      ctx.fillText(tr(T.tower.overDuo, { n: placed }), W / 2, H / 2 + 84);
     }
     ctx.fillStyle = '#8892a6';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText('화면을 누르거나 SPACE — 다시', W / 2, H - 44);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(T.tower.restart, W / 2, H - 44);
   }
 
   function draw() {
@@ -763,7 +764,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#4a5070';
       ctx.font = 'bold 14px Consolas, monospace';
-      ctx.fillText(`높이 ${Math.round(h)}`, W - 22, H - 92);
+      ctx.fillText(tr(T.tower.height, { n: Math.round(h) }), W - 22, H - 92);
     }
 
     if (state !== 'menu') drawHud();

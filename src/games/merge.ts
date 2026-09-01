@@ -21,6 +21,7 @@ import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
 import { drawInCircle } from '../lib/sprites';
 import { LEVELS, MAX_LEVEL, pickDropLevel, type MergeLevel } from './mergeFoods';
+import { T, FONT, tr } from '../i18n';
 
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
@@ -29,11 +30,11 @@ const CONFIG = {
     //   막 놓는 초보 493~1027(중앙 728) · 같은 것 위에 놓는 평균 1118~1968(중앙 1400)
     //   큰 것을 벽으로 모는 요령파 1363~3194(중앙 1902)
     // → 초보는 C, 평균은 B, 잘하면 A, S는 드물게 나오도록 잡았다.
-    { min: 2500, label: 'S', color: '#ffd700', msg: '한 상 차렸다!' },
-    { min: 1700, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
-    { min: 1100, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
-    { min: 500, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
-    { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
+    { min: 2500, label: 'S', color: '#ffd700', msg: T.merge.gradeS },
+    { min: 1700, label: 'A', color: '#ff5f9e', msg: T.grade.A },
+    { min: 1100, label: 'B', color: '#00ffc8', msg: T.grade.B },
+    { min: 500, label: 'C', color: '#6ea8ff', msg: T.grade.C },
+    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
   ] as Grade[],
   dropCooldown: 0.34,   // 연타 방지
   overGrace: 1.2,       // 선 위에 이만큼 머물러야 게임오버 (떨어뜨리는 순간은 봐준다)
@@ -493,20 +494,20 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
 
     // 다음
     ctx.fillStyle = '#4a5070';
-    ctx.font = '11px "Malgun Gothic", sans-serif';
-    ctx.fillText('다음', px, 112);
+    ctx.font = `11px ${FONT}`;
+    ctx.fillText(T.common.next, px, 112);
     const nd = defOf(next);
     drawBubble(px + 40, 146, nd, 0, 1);
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = 'bold 12px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 12px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.fillText(nd.name, px + 40, 190);
 
     // 진화표 — 지금 어디까지 왔는지, 다음이 무엇인지 한눈에
     ctx.textAlign = 'left';
     ctx.fillStyle = '#4a5070';
-    ctx.font = '11px "Malgun Gothic", sans-serif';
-    ctx.fillText('진화 순서', px, 222);
+    ctx.font = `11px ${FONT}`;
+    ctx.fillText(T.merge.evolution, px, 222);
     LEVELS.forEach((d, i) => {
       const y = 244 + i * 33;
       const got = d.level <= maxLevel;
@@ -516,7 +517,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
       ctx.arc(px + 10, y, 8.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = got ? '#dfe6ff' : '#7b83a4';
-      ctx.font = (d.level === maxLevel ? 'bold ' : '') + '12px "Malgun Gothic", sans-serif';
+      ctx.font = (d.level === maxLevel ? 'bold ' : '') + `12px ${FONT}`;
       ctx.fillText(d.name, px + 26, y + 4);
       ctx.globalAlpha = 1;
       if (i < LEVELS.length - 1) {
@@ -580,7 +581,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333a55';
     ctx.font = '11px Consolas, monospace';
-    ctx.fillText('마우스/←→ 조준 · 클릭·SPACE 놓기 · R 처음으로 · M 소리', 20, H - 16);
+    ctx.fillText(T.merge.keys, 20, H - 16);
     if (showFps) {
       ctx.textAlign = 'right';
       ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 20, H - 16);
@@ -596,14 +597,14 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.fillRect(0, 0, W, H);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff8a5c';
-    ctx.font = 'bold 44px "Malgun Gothic", sans-serif';
-    ctx.fillText('K-푸드 합치기', W / 2, 150);
+    ctx.font = `bold 44px ${FONT}`;
+    ctx.fillText(T.merge.title, W / 2, 150);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '17px "Malgun Gothic", sans-serif';
-    ctx.fillText('같은 음식끼리 닿으면 합쳐져서 다음 단계로 진화합니다', W / 2, 190);
+    ctx.font = `17px ${FONT}`;
+    ctx.fillText(T.merge.intro1, W / 2, 190);
     ctx.fillStyle = '#5b6480';
-    ctx.font = '14px "Malgun Gothic", sans-serif';
-    ctx.fillText('상자 밖으로 넘치면 끝 · 제한시간은 없습니다', W / 2, 218);
+    ctx.font = `14px ${FONT}`;
+    ctx.fillText(T.merge.intro2, W / 2, 218);
 
     // 체인 미리보기
     let x = 70;
@@ -613,16 +614,16 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
       x += d.r + (LEVELS[d.level] ? LEVELS[d.level].r : d.r) + 14;
     });
     ctx.fillStyle = '#4a5070';
-    ctx.font = '13px "Malgun Gothic", sans-serif';
-    ctx.fillText('10원빵 → 만두 → 김밥 → 소떡소떡 → 핫도그 → … → 떡뽁이', W / 2, 396);
+    ctx.font = `13px ${FONT}`;
+    ctx.fillText(T.merge.chain, W / 2, 396);
 
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText('떨어지는 음식은 앞 5단계에서만 나옵니다', W / 2, 448);
-    ctx.fillText('큰 음식은 오직 합쳐서만 만들 수 있습니다', W / 2, 474);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(T.merge.intro3, W / 2, 448);
+    ctx.fillText(T.merge.intro4, W / 2, 474);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText('클릭하거나 스페이스바를 눌러 시작', W / 2, H - 90);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(T.merge.start, W / 2, H - 90);
   }
 
   function drawOver() {
@@ -639,18 +640,18 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.font = 'bold 130px "Segoe UI", sans-serif';
     ctx.fillText(g.label, W / 2, H / 2);
     ctx.shadowBlur = 0;
-    ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 26px ${FONT}`;
     ctx.fillText(g.msg, W / 2, H / 2 + 46);
 
     const top = defOf(maxLevel);
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText(`최고 단계 ${top.name} · ${merges}번 합침`, W / 2, H / 2 + 88);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(tr(T.merge.over, { name: top.name, n: merges }), W / 2, H / 2 + 88);
     drawBubble(W / 2, H / 2 + 150, top, 0, 1);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText(`최고 ${best}점`, W / 2, H / 2 + 150 + top.r + 26);
-    ctx.fillText('클릭하거나 스페이스바로 다시', W / 2, H - 60);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(tr(T.common.best, { n: best }), W / 2, H / 2 + 150 + top.r + 26);
+    ctx.fillText(T.merge.restart, W / 2, H - 60);
   }
 
   /* ===== 메인 루프 ===== */

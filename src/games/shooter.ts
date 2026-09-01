@@ -13,6 +13,7 @@
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
+import { T, FONT, tr } from '../i18n';
 import {
   drawPlayerShip, drawInterceptor, drawSaucer, drawDart,
   drawGunship, drawCruiser, drawDreadnought, drawPowerCapsule,
@@ -21,11 +22,11 @@ import {
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
   grades: [
-    { min: 30000, label: 'S', color: '#ffd700', msg: '에이스 파일럿!' },
-    { min: 20000, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
-    { min: 12000, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
-    { min: 5000, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
-    { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
+    { min: 30000, label: 'S', color: '#ffd700', msg: T.shooter.gradeS },
+    { min: 20000, label: 'A', color: '#ff5f9e', msg: T.grade.A },
+    { min: 12000, label: 'B', color: '#00ffc8', msg: T.grade.B },
+    { min: 5000, label: 'C', color: '#6ea8ff', msg: T.grade.C },
+    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
   ] as Grade[],
   lives: 3,
   finalWave: 15,
@@ -626,7 +627,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.fillRect(-30, -30, W + 60, H + 60);
     ctx.textAlign = 'center';
     ctx.fillStyle = titleColor;
-    ctx.font = 'bold 54px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 54px ${FONT}`;
     ctx.fillText(title, W / 2, H / 2 - 190);
     ctx.fillStyle = '#e8f0ff';
     ctx.font = 'bold 32px Consolas, monospace';
@@ -636,11 +637,11 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.font = 'bold 150px "Segoe UI", sans-serif';
     ctx.fillText(g.label, W / 2, H / 2 + 40);
     ctx.shadowBlur = 0;
-    ctx.font = 'bold 28px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 28px ${FONT}`;
     ctx.fillText(g.msg, W / 2, H / 2 + 95);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '17px "Malgun Gothic", sans-serif';
-    ctx.fillText('클릭 또는 스페이스바로 재시작', W / 2, H - 60);
+    ctx.font = `17px ${FONT}`;
+    ctx.fillText(T.shooter.restart, W / 2, H - 60);
   }
 
   function draw() {
@@ -712,7 +713,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     ctx.font = '14px Consolas, monospace';
     ctx.fillText('WAVE ' + wave + ' / ' + CONFIG.finalWave, 20, H - 16);
     ctx.textAlign = 'right';
-    ctx.fillText('M: 소리 ' + (sound.muted ? 'OFF' : 'ON'), W - 20, H - 16);
+    ctx.fillText(T.shooter.sound + ' ' + (sound.muted ? 'OFF' : 'ON'), W - 20, H - 16);
     if (showFps) ctx.fillText(quality.fps.toFixed(0) + ' FPS · x' + quality.scale.toFixed(1), W - 20, H - 32);
     ctx.textAlign = 'left';
 
@@ -721,7 +722,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
       ctx.textAlign = 'center';
       ctx.globalAlpha = Math.min(1, waveMsgT * 2);
       ctx.fillStyle = wave >= CONFIG.finalWave ? '#ffd700' : '#b09aff';
-      ctx.font = 'bold 40px "Malgun Gothic", sans-serif';
+      ctx.font = `bold 40px ${FONT}`;
       ctx.fillText(wave >= CONFIG.finalWave ? '⚠ FINAL BOSS ⚠' : 'WAVE ' + wave, W / 2, H / 2 - 160);
       ctx.globalAlpha = 1;
     }
@@ -729,15 +730,15 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     if (state === 'ready') {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#b09aff';
-      ctx.font = 'bold 46px "Malgun Gothic", sans-serif';
-      ctx.fillText('벡터 스트라이크', W / 2, H / 2 - 120);
+      ctx.font = `bold 46px ${FONT}`;
+      ctx.fillText(T.shooter.title, W / 2, H / 2 - 120);
       ctx.fillStyle = '#e8f0ff';
-      ctx.font = '19px "Malgun Gothic", sans-serif';
-      ctx.fillText('마우스 또는 방향키로 이동 · 공격은 자동', W / 2, H / 2 - 55);
-      ctx.fillText('P 아이템: 무기 강화 (최대 Lv.5) · 피격 시 1단계 하락!', W / 2, H / 2 - 22);
-      ctx.fillText('웨이브 ' + CONFIG.finalWave + '의 최종보스를 격파하면 클리어!', W / 2, H / 2 + 11);
+      ctx.font = `19px ${FONT}`;
+      ctx.fillText(T.shooter.intro1, W / 2, H / 2 - 55);
+      ctx.fillText(T.shooter.intro2, W / 2, H / 2 - 22);
+      ctx.fillText(tr(T.shooter.intro3, { n: CONFIG.finalWave }), W / 2, H / 2 + 11);
       ctx.fillStyle = '#8892a6';
-      ctx.fillText('클릭 또는 스페이스바로 시작', W / 2, H / 2 + 70);
+      ctx.fillText(T.shooter.start, W / 2, H / 2 + 70);
     }
 
     if (state === 'over') drawEndScreen('GAME OVER', '#ff5f5f', gradeOf(CONFIG.grades, Math.floor(score)));

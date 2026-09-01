@@ -3,26 +3,17 @@ import { motion } from 'framer-motion';
 import GameCard from '../ui/GameCard';
 import Leaderboard from '../ui/Leaderboard';
 import { KEYS, getScores, resetAllScores, type ScoreRecord } from '../lib/score';
+import { T, tr, splitBold } from '../i18n';
 
-/* 카드 상단 미니 아트 — 각 게임의 실루엣 */
-function RunnerArt() {
+function Bold({ text, color }: { text: string; color: string }) {
   return (
-    <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden>
-      <motion.g
-        animate={{ y: [0, -9, 0] }}
-        transition={{ duration: 1.05, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <rect x="30" y="18" width="20" height="22" rx="3" fill="#00ffc8" />
-        <rect x="42" y="24" width="6" height="5" fill="#05050c" />
-        <rect x="30" y="40" width="6" height="10" fill="#00ffc8" />
-        <rect x="43" y="40" width="6" height="10" fill="#00ffc8" />
-      </motion.g>
-      <rect x="8" y="56" width="60" height="2" rx="1" fill="#2a3550" />
-      <rect x="56" y="44" width="12" height="12" rx="2" fill="#ffb03a" />
-    </svg>
+    <>
+      {splitBold(text).map(([s, b], i) => (b ? <strong key={i} style={{ color }}>{s}</strong> : <span key={i}>{s}</span>))}
+    </>
   );
 }
 
+/* 카드 상단 미니 아트 — 각 게임의 실루엣 */
 function ShooterArt() {
   return (
     <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden>
@@ -116,14 +107,12 @@ function ArrowArt() {
 }
 
 export default function Home() {
-  const [runnerScores, setRunnerScores] = useState<ScoreRecord[]>([]);
   const [shooterScores, setShooterScores] = useState<ScoreRecord[]>([]);
   const [towerScores, setTowerScores] = useState<ScoreRecord[]>([]);
   const [mergeScores, setMergeScores] = useState<ScoreRecord[]>([]);
   const [arrowScores, setArrowScores] = useState<ScoreRecord[]>([]);
 
   const refresh = useCallback(() => {
-    setRunnerScores(getScores(KEYS.runner));
     setShooterScores(getScores(KEYS.shooter));
     setTowerScores(getScores(KEYS.tower));
     setMergeScores(getScores(KEYS.merge));
@@ -141,10 +130,10 @@ export default function Home() {
     };
   }, [refresh]);
 
-  const totalPlays = runnerScores.length + shooterScores.length + towerScores.length + mergeScores.length + arrowScores.length;
+  const totalPlays = shooterScores.length + towerScores.length + mergeScores.length + arrowScores.length;
 
   function onReset() {
-    if (!confirm('모든 게임 기록을 삭제할까요? (되돌릴 수 없음)')) return;
+    if (!confirm(T.home.resetConfirm)) return;
     resetAllScores();
     refresh();
   }
@@ -177,7 +166,7 @@ export default function Home() {
             transition={{ duration: 1.7, repeat: Infinity }}
             style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--cyan)' }}
           />
-          NOW OPEN · PC방 부스
+          {T.home.badge}
         </motion.div>
 
         <motion.h1
@@ -196,7 +185,7 @@ export default function Home() {
             filter: 'drop-shadow(0 6px 34px rgba(176,154,255,.34))',
           }}
         >
-          K-FOOD 게임천국
+          {T.home.title}
         </motion.h1>
 
         <motion.p
@@ -205,9 +194,9 @@ export default function Home() {
           transition={{ delay: 0.2, duration: 0.6 }}
           style={{ color: 'var(--dim)', marginTop: 16, fontSize: 16 }}
         >
-          게임에서 점수를 올리고 <strong style={{ color: 'var(--gold)' }}>등급</strong>을 받아
+          <Bold text={T.home.intro1} color="var(--gold)" />
           <br />
-          부스에서 <strong style={{ color: 'var(--cyan)' }}>음식 포인트</strong>로 교환하세요
+          <Bold text={T.home.intro2} color="var(--cyan)" />
         </motion.p>
 
         {totalPlays > 0 && (
@@ -218,7 +207,7 @@ export default function Home() {
             className="mono"
             style={{ marginTop: 18, fontSize: 13, color: 'var(--faint)' }}
           >
-            오늘 플레이 {totalPlays.toLocaleString()}회
+            {tr(T.home.plays, { n: totalPlays.toLocaleString() })}
           </motion.div>
         )}
       </header>
@@ -227,72 +216,42 @@ export default function Home() {
       <section style={{ display: 'flex', gap: 26, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 66 }}>
         <GameCard
           index={0}
-          to="/runner"
-          title="네온 러너"
-          tagline="리듬을 타고 질주하라"
-          accent="#00ffc8"
-          art={<RunnerArt />}
-          bullets={[
-            '점프 · 2단 점프 · 숙이기 · 급강하 콤보',
-            '달릴수록 빨라지는 무한 러너',
-            'BGM 템포도 속도에 맞춰 상승',
-          ]}
-          controls="SPACE / ↓"
+          to="/shooter"
+          title={T.shooter.title}
+          tagline={T.shooter.tagline}
+          accent="#b09aff"
+          art={<ShooterArt />}
+          bullets={T.shooter.bullets}
+          controls={T.shooter.controls}
         />
         <GameCard
           index={1}
-          to="/shooter"
-          title="벡터 스트라이크"
-          tagline="탄막을 뚫고 보스를 격파하라"
-          accent="#b09aff"
-          art={<ShooterArt />}
-          bullets={[
-            'P 아이템으로 무기 Lv.5까지 강화',
-            '15웨이브 + 최종보스 3단 페이즈',
-            '클리어 보너스로 S등급 도전',
-          ]}
-          controls="MOUSE / 자동 사격"
-        />
-        <GameCard
-          index={2}
           to="/tower"
-          title="K-푸드 타워"
-          tagline="무게중심을 지배하라"
+          title={T.tower.title}
+          tagline={T.tower.tagline}
           accent="#ffb03a"
           art={<TowerArt />}
-          bullets={[
-            '실제 물리 엔진 — 중력만 작용합니다',
-            '음식 10종, 모양이 곧 성격 (김밥은 굴러갑니다)',
-            '혼자 점수 도전 · 둘이서 번갈아 대전',
-          ]}
+          bullets={T.tower.bullets}
           controls="←→ ↑ / SPACE"
         />
         <GameCard
-          index={3}
+          index={2}
           to="/merge"
-          title="K-푸드 합치기"
-          tagline="같은 음식을 붙여 진화시켜라"
+          title={T.merge.title}
+          tagline={T.merge.tagline}
           accent="#ff8a5c"
           art={<MergeArt />}
-          bullets={[
-            '같은 음식끼리 닿으면 다음 단계로 진화',
-            '10원빵부터 떡뽁이 한 그릇까지 12단계',
-            '상자가 넘치면 끝 — 제한시간은 없습니다',
-          ]}
+          bullets={T.merge.bullets}
           controls="MOUSE / SPACE"
         />
         <GameCard
-          index={4}
+          index={3}
           to="/arrow"
-          title="K-푸드 사격"
-          tagline="젓가락을 불려 쓸어담아라"
+          title={T.arrow.title}
+          tagline={T.arrow.tagline}
           accent="#ffd76a"
           art={<ArrowArt />}
-          bullets={[
-            '좌우로만 움직이면 발사는 자동',
-            '내려오는 게이트를 골라 화력을 키움',
-            '못 죽인 적이 내려오면 체력이 깎임',
-          ]}
+          bullets={T.arrow.bullets}
           controls="MOUSE / ←→"
         />
       </section>
@@ -309,11 +268,10 @@ export default function Home() {
           — HALL OF FAME —
         </motion.h2>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Leaderboard title="네온 러너 TOP 10" accent="#00ffc8" records={runnerScores} delay={0.44} />
-          <Leaderboard title="벡터 스트라이크 TOP 10" accent="#b09aff" records={shooterScores} delay={0.52} />
-          <Leaderboard title="K-푸드 타워 TOP 10" accent="#ffb03a" records={towerScores} delay={0.6} />
-          <Leaderboard title="K-푸드 합치기 TOP 10" accent="#ff8a5c" records={mergeScores} delay={0.68} />
-          <Leaderboard title="K-푸드 사격 TOP 10" accent="#ffd76a" records={arrowScores} delay={0.76} />
+          <Leaderboard title={tr(T.common.top10, { game: T.shooter.title })} accent="#b09aff" records={shooterScores} delay={0.52} />
+          <Leaderboard title={tr(T.common.top10, { game: T.tower.title })} accent="#ffb03a" records={towerScores} delay={0.6} />
+          <Leaderboard title={tr(T.common.top10, { game: T.merge.title })} accent="#ff8a5c" records={mergeScores} delay={0.68} />
+          <Leaderboard title={tr(T.common.top10, { game: T.arrow.title })} accent="#ffd76a" records={arrowScores} delay={0.76} />
         </div>
       </section>
 
@@ -334,10 +292,10 @@ export default function Home() {
             fontFamily: 'inherit',
           }}
         >
-          기록 전체 초기화 (운영자용)
+          {T.home.reset}
         </motion.button>
         <p className="mono" style={{ marginTop: 16, fontSize: 11, color: '#333a55' }}>
-          모든 그래픽·사운드는 코드로 생성됩니다 · 외부 저작물 없음
+          {T.home.credit}
         </p>
       </footer>
     </div>

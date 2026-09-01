@@ -21,6 +21,7 @@ import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
 import { drawSprite } from '../lib/sprites';
+import { T, FONT, tr, fmtNum } from '../i18n';
 import { drawPerson, drawChopsticksHeld, PAL } from './arrowChars';
 import {
   initialStats, dps, baseDps, damagePerArrow, shownArrows, rollItem, tickBuffs, effMul,
@@ -34,11 +35,11 @@ const CONFIG = {
     // 시뮬레이션 분포로 정했다 (초반 유예 3구간 반영 후).
     // 부스 손님 모델(반응 0.3초·오차 있음) 중앙 12,560 · 23구간 · 2분 53초
     // 요령파(아이템 최우선) 중앙 13,563 · 24구간 · 2분 57초
-    { min: 40000, label: 'S', color: '#ffd700', msg: '전설의 사수!' },
-    { min: 22000, label: 'A', color: '#ff5f9e', msg: '대단해요!' },
-    { min: 12000, label: 'B', color: '#00ffc8', msg: '잘했어요!' },
-    { min: 5000, label: 'C', color: '#6ea8ff', msg: '좋아요!' },
-    { min: 0, label: 'D', color: '#8892a6', msg: '다시 도전!' },
+    { min: 40000, label: 'S', color: '#ffd700', msg: T.arrow.gradeS },
+    { min: 22000, label: 'A', color: '#ff5f9e', msg: T.grade.A },
+    { min: 12000, label: 'B', color: '#00ffc8', msg: T.grade.B },
+    { min: 5000, label: 'C', color: '#6ea8ff', msg: T.grade.C },
+    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
   ] as Grade[],
 };
 
@@ -87,12 +88,7 @@ function gradeJingle(label: string) {
 }
 
 /** 큰 수는 줄여 쓴다 — 이 장르는 숫자가 금방 백만 단위가 된다 */
-function fmt(n: number) {
-  if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
-  if (n >= 1e4) return (n / 1e4).toFixed(n >= 1e5 ? 0 : 1) + '만';
-  if (n >= 1000) return (n / 1000).toFixed(1) + '천';
-  return String(Math.round(n));
-}
+const fmt = fmtNum;
 
 /* ===== 개체 ===== */
 interface Enemy {
@@ -157,7 +153,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       spawnEnemy('boss', 0, -0.15);
       bossAlive = true;
       SFX.boss();
-      popups.push({ x: CX, y: 250, text: '보스 등장!', color: '#ff5f9e', life: 1.6, big: true });
+      popups.push({ x: CX, y: 250, text: T.arrow.boss, color: '#ff5f9e', life: 1.6, big: true });
     } else {
       // 부대처럼 줄 맞춰 내려온다
       const n = WAVE.count(wave);
@@ -200,7 +196,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
   function hurt(amount: number) {
     if (st.shield > 0) {
       st.shield--;
-      popups.push({ x: sx(px, 1), y: GROUND_Y - 70, text: '보호막!', color: '#22c1c3', life: 0.9 });
+      popups.push({ x: sx(px, 1), y: GROUND_Y - 70, text: T.arrow.shieldPop, color: '#22c1c3', life: 0.9 });
       return;
     }
     st.hp -= amount;
@@ -516,13 +512,13 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     // 큼직한 배수 글자
     const fs = Math.max(11, 26 * p * 2.6);
     ctx.textAlign = 'center';
-    ctx.font = `bold ${fs}px "Malgun Gothic", sans-serif`;
+    ctx.font = `bold ${fs}px ${FONT}`;
     ctx.fillStyle = 'rgba(0,0,0,.65)';
     ctx.fillText(d.item.tag, x + 1.5, y + 1.5);
     ctx.fillStyle = d.item.color;
     ctx.fillText(d.item.tag, x, y);
     if (p > 0.32) {
-      ctx.font = `${Math.max(9, 12 * p * 2.6)}px "Malgun Gothic", sans-serif`;
+      ctx.font = `${Math.max(9, 12 * p * 2.6)}px ${FONT}`;
       ctx.fillStyle = 'rgba(220,230,255,.85)';
       ctx.fillText(d.item.what, x, y + fs * 0.86);
     }
@@ -555,7 +551,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillText(`${Math.ceil(st.hp)} / ${st.maxHp}`, bx + 6, by + 11);
     if (st.shield > 0) {
       ctx.fillStyle = '#22c1c3';
-      ctx.fillText(`보호막 ${st.shield}`, bx + bw + 10, by + 11);
+      ctx.fillText(tr(T.arrow.shield, { n: st.shield }), bx + bw + 10, by + 11);
     }
 
     ctx.textAlign = 'right';
@@ -569,28 +565,28 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffb03a';
     ctx.font = 'bold 15px Consolas, monospace';
-    ctx.fillText(`화력 ${fmt(dps(st))}`, bx, by + 36);
+    ctx.fillText(tr(T.arrow.power, { n: fmt(dps(st)) }), bx, by + 36);
     ctx.fillStyle = '#6b7490';
     ctx.font = '11px Consolas, monospace';
-    ctx.fillText(`젓가락 ${st.n} · 공격 x${fmt(effMul(st))} · 연사 ${st.rate.toFixed(1)} · 관통 ${st.pierce}`, bx, by + 53);
+    ctx.fillText(tr(T.arrow.stats, { n: st.n, mul: fmt(effMul(st)), rate: st.rate.toFixed(1), pierce: st.pierce }), bx, by + 53);
     if (st.burstT > 0) {
       ctx.fillStyle = st.burst >= 10 ? '#ffd700' : '#ff3d2e';
       ctx.font = 'bold 15px Consolas, monospace';
-      ctx.fillText(`공격 ×${st.burst}  ${st.burstT.toFixed(1)}s`, bx + 210, by + 36);
+      ctx.fillText(tr(T.arrow.burst, { n: st.burst, t: st.burstT.toFixed(1) }), bx + 210, by + 36);
     }
     const ratio = baseDps(st) / baselineDps(wave);
     ctx.fillStyle = ratio >= 1 ? '#4ade80' : '#ff8a8a';
-    ctx.fillText(`기준선 대비 ${(ratio * 100).toFixed(0)}%`, bx, by + 69);
+    ctx.fillText(tr(T.arrow.baseline, { n: (ratio * 100).toFixed(0) }), bx, by + 69);
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#8892a6';
-    ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
-    ctx.fillText(`구간 ${wave}`, CX, 32);
+    ctx.font = `bold 13px ${FONT}`;
+    ctx.fillText(tr(T.arrow.wave, { n: wave }), CX, 32);
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333a55';
     ctx.font = '11px Consolas, monospace';
-    ctx.fillText('마우스/←→ 좌우 · 발사는 자동 · R 처음으로 · M 소리', 18, H - 12);
+    ctx.fillText(T.arrow.keys, 18, H - 12);
     if (showFps) {
       ctx.textAlign = 'right';
       ctx.fillText(quality.fps.toFixed(0) + ' FPS', W - 18, H - 12);
@@ -602,41 +598,41 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillRect(0, 0, W, H);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd76a';
-    ctx.font = 'bold 42px "Malgun Gothic", sans-serif';
-    ctx.fillText('K-푸드 사격', CX, 128);
+    ctx.font = `bold 42px ${FONT}`;
+    ctx.fillText(T.arrow.title, CX, 128);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '17px "Malgun Gothic", sans-serif';
-    ctx.fillText('좌우로만 움직이세요. 발사는 알아서 합니다', CX, 164);
+    ctx.font = `17px ${FONT}`;
+    ctx.fillText(T.arrow.intro1, CX, 164);
 
     // 요리사 vs 악당
     ctx.save(); ctx.translate(CX - 130, 310); drawPerson(ctx, 2.6, PAL.chef, 0, -1); ctx.restore();
     ctx.save(); ctx.translate(CX + 120, 310); drawPerson(ctx, 2.6, PAL.grunt, 0, -1); ctx.restore();
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '13px "Malgun Gothic", sans-serif';
-    ctx.fillText('나 (요리사)', CX - 130, 330);
+    ctx.font = `13px ${FONT}`;
+    ctx.fillText(T.arrow.me, CX - 130, 330);
     ctx.fillStyle = '#ff9d9d';
-    ctx.fillText('악당', CX + 120, 330);
+    ctx.fillText(T.arrow.enemy, CX + 120, 330);
 
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText('길에 떠내려오는 K-푸드를 몸으로 주우면', CX, 392);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(T.arrow.intro2, CX, 392);
     ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 17px "Malgun Gothic", sans-serif';
-    ctx.fillText('불닭 ×3 · 김치 ×10 · 김밥 +3 …', CX, 420);
+    ctx.font = `bold 17px ${FONT}`;
+    ctx.fillText(T.arrow.intro3, CX, 420);
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText('그만큼 세집니다', CX, 446);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(T.arrow.intro4, CX, 446);
 
     ctx.fillStyle = '#ff8a8a';
-    ctx.font = '14px "Malgun Gothic", sans-serif';
-    ctx.fillText('못 죽인 악당이 내 앞까지 오면 체력이 깎입니다', CX, 494);
+    ctx.font = `14px ${FONT}`;
+    ctx.fillText(T.arrow.intro5, CX, 494);
     ctx.fillStyle = '#5b6480';
-    ctx.font = '13px "Malgun Gothic", sans-serif';
-    ctx.fillText('체력이 0이 되면 끝 · 5구간마다 보스', CX, 520);
+    ctx.font = `13px ${FONT}`;
+    ctx.fillText(T.arrow.intro6, CX, 520);
 
     ctx.fillStyle = '#8892a6';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText('클릭하거나 스페이스바를 눌러 시작', CX, H - 86);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(T.arrow.start, CX, H - 86);
   }
 
   function drawOver() {
@@ -653,21 +649,21 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.font = 'bold 126px "Segoe UI", sans-serif';
     ctx.fillText(g.label, CX, H / 2);
     ctx.shadowBlur = 0;
-    ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+    ctx.font = `bold 26px ${FONT}`;
     ctx.fillText(g.msg, CX, H / 2 + 46);
     ctx.fillStyle = '#cfd7f5';
-    ctx.font = '16px "Malgun Gothic", sans-serif';
-    ctx.fillText(`${wave}구간 · ${kills}명 처치 · 아이템 ${picked}개`, CX, H / 2 + 90);
+    ctx.font = `16px ${FONT}`;
+    ctx.fillText(tr(T.arrow.over, { wave, kills, picked }), CX, H / 2 + 90);
     ctx.fillStyle = '#ffb03a';
     ctx.font = 'bold 17px Consolas, monospace';
-    ctx.fillText(`최종 화력 ${fmt(dps(st))}`, CX, H / 2 + 120);
+    ctx.fillText(tr(T.arrow.finalPower, { n: fmt(dps(st)) }), CX, H / 2 + 120);
     ctx.fillStyle = '#6b7490';
     ctx.font = '13px Consolas, monospace';
-    ctx.fillText(`젓가락 ${st.n} · 공격 x${fmt(st.mul)} · 관통 ${st.pierce}`, CX, H / 2 + 144);
+    ctx.fillText(tr(T.arrow.finalStats, { n: st.n, mul: fmt(st.mul), pierce: st.pierce }), CX, H / 2 + 144);
     ctx.fillStyle = '#8892a6';
-    ctx.font = '15px "Malgun Gothic", sans-serif';
-    ctx.fillText(`최고 ${fmt(best)}점`, CX, H / 2 + 176);
-    ctx.fillText('클릭하거나 스페이스바로 다시', CX, H - 56);
+    ctx.font = `15px ${FONT}`;
+    ctx.fillText(tr(T.common.best, { n: fmt(best) }), CX, H / 2 + 176);
+    ctx.fillText(T.arrow.restart, CX, H - 56);
   }
 
   function draw() {
@@ -696,7 +692,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
       for (const u of popups) {
         ctx.globalAlpha = Math.min(1, u.life * 1.7);
         ctx.fillStyle = u.color;
-        ctx.font = `bold ${u.big ? 28 : 17}px "Malgun Gothic", sans-serif`;
+        ctx.font = `bold ${u.big ? 28 : 17}px ${FONT}`;
         ctx.fillText(u.text, u.x, u.y);
       }
       ctx.globalAlpha = 1;

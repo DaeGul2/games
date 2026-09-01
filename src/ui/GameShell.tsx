@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { T } from '../i18n';
 
 interface Props {
   title: string;
@@ -112,7 +113,7 @@ export default function GameShell({ title, accent, hints, mount }: Props) {
       </motion.div>
 
       <p className="mono" style={{ fontSize: 11, color: '#333a55' }}>
-        게임 종료 시 등급이 화면에 표시됩니다 · 직원에게 보여주고 포인트를 받으세요
+        {T.common.shellNote}
       </p>
     </div>
   );

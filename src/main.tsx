@@ -3,19 +3,24 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Layout from './ui/Layout';
 import Home from './routes/Home';
-import RunnerPage from './routes/RunnerPage';
 import ShooterPage from './routes/ShooterPage';
 import TowerPage from './routes/TowerPage';
 import MergePage from './routes/MergePage';
 import ArrowPage from './routes/ArrowPage';
 import './styles/global.css';
+import { T } from './i18n';
+
+// 언어별 문서 설정 — 제목·lang·본문 폰트는 사전에서 온다
+document.documentElement.lang = T.lang;
+document.documentElement.style.setProperty('--font-body', T.fontBody);
+document.title = T.meta.title;
+document.querySelector('meta[name="description"]')?.setAttribute('content', T.meta.description);
 
 const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/runner', element: <RunnerPage /> },
       { path: '/shooter', element: <ShooterPage /> },
       { path: '/tower', element: <TowerPage /> },
       { path: '/merge', element: <MergePage /> },

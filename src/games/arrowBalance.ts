@@ -24,6 +24,7 @@
  */
 
 import { type SpriteKey } from '../lib/sprites';
+import { T } from '../i18n';
 
 /* ===== 시작 수치 ===== */
 export const BASE = {
@@ -136,29 +137,30 @@ export interface Item {
   apply: (s: Stats) => void;
 }
 
+const L = T.arrow.items;
 export const ITEMS: Item[] = [
   /* ── 영구 성장 (완만) ── */
-  { key: 'n3',  sprite: 'gimbap',     tag: '+2',   what: '젓가락', color: '#ffc23a', weight: 22,
+  { key: 'n3',  sprite: 'gimbap',     ...L.n3, color: '#ffc23a', weight: 22,
     apply: s => { s.n += 2; } },
-  { key: 'n6',  sprite: 'sotteok',    tag: '+4',   what: '젓가락', color: '#ffa62b', weight: 9,
+  { key: 'n6',  sprite: 'sotteok',    ...L.n6, color: '#ffa62b', weight: 9,
     apply: s => { s.n += 4; } },
-  { key: 'nx2', sprite: 'mandu',      tag: '×1.5', what: '젓가락', color: '#35d6a4', weight: 5,
+  { key: 'nx2', sprite: 'mandu',      ...L.nx2, color: '#35d6a4', weight: 5,
     apply: s => { s.n = Math.max(s.n + 2, Math.round(s.n * 1.5)); } },
-  { key: 'dx2', sprite: 'cupramyeon', tag: '+30%', what: '공격력', color: '#ff6f5e', weight: 16,
+  { key: 'dx2', sprite: 'cupramyeon', ...L.dx2, color: '#ff6f5e', weight: 16,
     apply: s => { s.mul *= 1.3; } },
-  { key: 'rate', sprite: 'tteokbokki', tag: '+20%', what: '연사', color: '#4aa8ff', weight: 13,
+  { key: 'rate', sprite: 'tteokbokki', ...L.rate, color: '#4aa8ff', weight: 13,
     apply: s => { s.rate = Math.min(RATE_CAP, s.rate * 1.2); } },
-  { key: 'pierce', sprite: 'hotdog',  tag: '관통',  what: '+1', color: '#a97bff', weight: 9,
+  { key: 'pierce', sprite: 'hotdog',  ...L.pierce, color: '#a97bff', weight: 9,
     apply: s => { s.pierce += 1; } },
   /* ── 생존 ── */
-  { key: 'hp',  sprite: 'chicken',    tag: '+40',  what: '최대 체력', color: '#9ede3a', weight: 8,
+  { key: 'hp',  sprite: 'chicken',    ...L.hp, color: '#9ede3a', weight: 8,
     apply: s => { s.maxHp += 40; s.hp = Math.min(s.maxHp, s.hp + 40); } },
-  { key: 'heal', sprite: 'coinbread', tag: '회복',  what: '체력 절반', color: '#66e0a0', weight: 6,
+  { key: 'heal', sprite: 'coinbread', ...L.heal, color: '#66e0a0', weight: 6,
     apply: s => { s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.5); } },
   /* ── 일시 폭발 (7초) — 숫자가 터지는 맛은 여기서 낸다 ── */
-  { key: 'dx3', sprite: 'buldak',     tag: '×3',   what: '7초 공격력', color: '#ff3d2e', weight: 9,
+  { key: 'dx3', sprite: 'buldak',     ...L.dx3, color: '#ff3d2e', weight: 9,
     apply: s => burst(s, 3) },
-  { key: 'dx10', sprite: 'kimchi',    tag: '×10',  what: '7초 공격력', color: '#ffd700', weight: 3,
+  { key: 'dx10', sprite: 'kimchi',    ...L.dx10, color: '#ffd700', weight: 3,
     apply: s => burst(s, 10) },
 ];
 

@@ -14,6 +14,7 @@ import {
   SPRITES,
   type SpriteKey,
 } from '../lib/sprites';
+import { T } from '../i18n';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -58,55 +59,55 @@ interface Spec {
 const SPECS: Spec[] = [
   /* ── 잘 쌓이는 것 (tier 1) ── */
   {
-    key: 'ramyeon', desc: '냄비 바닥이 평평 — 최고의 받침', tier: 1, w: 78,
+    key: 'ramyeon', desc: T.tower.foodDesc.ramyeon, tier: 1, w: 78,
     friction: 0.78, frictionStatic: 0.92, restitution: 0.02, density: 0.0016,
   },
   {
-    key: 'tteokbokki', desc: '넓은 그릇 — 안정적인 받침', tier: 1, w: 74,
+    key: 'tteokbokki', desc: T.tower.foodDesc.tteokbokki, tier: 1, w: 74,
     friction: 0.76, frictionStatic: 0.9, restitution: 0.02, density: 0.0016,
   },
   {
-    key: 'kimchi', desc: '납작한 접시 — 아래를 받치기 좋다', tier: 1, w: 72,
+    key: 'kimchi', desc: T.tower.foodDesc.kimchi, tier: 1, w: 72,
     friction: 0.82, frictionStatic: 0.95, restitution: 0.01, density: 0.0015,
   },
   {
-    key: 'mandu', desc: '밑면이 평평해 잘 쌓인다', tier: 1, w: 64,
+    key: 'mandu', desc: T.tower.foodDesc.mandu, tier: 1, w: 64,
     friction: 0.62, frictionStatic: 0.78, restitution: 0.03, density: 0.0013,
   },
 
   /* ── 보통 (tier 2) ── */
   {
-    key: 'gimbap', desc: '가장 길다 — 걸쳐서 다리를 놓아라', tier: 2, w: 88,
+    key: 'gimbap', desc: T.tower.foodDesc.gimbap, tier: 2, w: 88,
     friction: 0.52, frictionStatic: 0.64, restitution: 0.04, density: 0.0014,
   },
   {
-    key: 'buldak', desc: '봉지라 미끄럽다', tier: 2, w: 66,
+    key: 'buldak', desc: T.tower.foodDesc.buldak, tier: 2, w: 66,
     friction: 0.4, frictionStatic: 0.5, restitution: 0.05, density: 0.0011,
   },
   {
-    key: 'cupramyeon', desc: '컵 — 세워 두면 훌륭한 기둥', tier: 2, w: 56,
+    key: 'cupramyeon', desc: T.tower.foodDesc.cupramyeon, tier: 2, w: 56,
     friction: 0.72, frictionStatic: 0.86, restitution: 0.02, density: 0.0014,
   },
   {
-    key: 'cupteok', desc: '컵 — 위가 넓어 살짝 불안하다', tier: 2, w: 56,
+    key: 'cupteok', desc: T.tower.foodDesc.cupteok, tier: 2, w: 56,
     friction: 0.7, frictionStatic: 0.84, restitution: 0.02, density: 0.0014,
   },
   {
-    key: 'chicken', desc: '무겁고 비대칭 — 아래를 짓누른다', tier: 2, w: 74,
+    key: 'chicken', desc: T.tower.foodDesc.chicken, tier: 2, w: 74,
     friction: 0.68, frictionStatic: 0.8, restitution: 0.03, density: 0.0026,
   },
 
   /* ── 어려운 것 (tier 3) ── */
   {
-    key: 'coinbread', desc: '동그래서 잘 굴러간다 — 최악', tier: 3, w: 62,
+    key: 'coinbread', desc: T.tower.foodDesc.coinbread, tier: 3, w: 62,
     friction: 0.24, frictionStatic: 0.3, restitution: 0.09, density: 0.0015, round: true,
   },
   {
-    key: 'sotteok', desc: '길쭉한 꼬치 — 걸치기 좋다', tier: 3, w: 78,
+    key: 'sotteok', desc: T.tower.foodDesc.sotteok, tier: 3, w: 78,
     friction: 0.46, frictionStatic: 0.56, restitution: 0.04, density: 0.0014,
   },
   {
-    key: 'hotdog', desc: '가장 얇다 — 위에 뭘 올리기 어렵다', tier: 3, w: 84,
+    key: 'hotdog', desc: T.tower.foodDesc.hotdog, tier: 3, w: 84,
     friction: 0.42, frictionStatic: 0.52, restitution: 0.05, density: 0.0013,
   },
 ];
@@ -135,7 +136,7 @@ function build(s: Spec): FoodDef {
 
   return {
     key: s.key,
-    name: meta.ko,
+    name: T.foods[s.key],
     desc: s.desc,
     tier: s.tier,
     parts,
