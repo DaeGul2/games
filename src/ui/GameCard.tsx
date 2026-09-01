@@ -1,6 +1,14 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
+
+/** 게임별 팔레트 — global.css 의 --g-* 토큰과 같은 값 */
+export interface GamePalette {
+  accent: string;
+  border: string;
+  title: string;
+  btn: string;
+  label: string;
+}
 
 export interface GameCardProps {
   to: string;
@@ -8,125 +16,95 @@ export interface GameCardProps {
   tagline: string;
   bullets: string[];
   controls: string;
-  accent: string;
+  palette: GamePalette;
   index: number;
   art: React.ReactNode;
 }
 
-/** 마우스 위치를 따라 기울어지는 3D 카드 (스프링 감쇠 + 글레어) */
-export default function GameCard({ to, title, tagline, bullets, controls, accent, index, art }: GameCardProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const mx = useMotionValue(0.5);
-  const my = useMotionValue(0.5);
-  const sx = useSpring(mx, { stiffness: 220, damping: 22 });
-  const sy = useSpring(my, { stiffness: 220, damping: 22 });
-  const rotateY = useTransform(sx, [0, 1], [-9, 9]);
-  const rotateX = useTransform(sy, [0, 1], [7, -7]);
-  const glareX = useTransform(sx, [0, 1], ['0%', '100%']);
-  const glareY = useTransform(sy, [0, 1], ['0%', '100%']);
-
-  function onMove(e: React.MouseEvent) {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    mx.set((e.clientX - r.left) / r.width);
-    my.set((e.clientY - r.top) / r.height);
-  }
-  function onLeave() {
-    mx.set(0.5);
-    my.set(0.5);
-  }
-
+/** 흰 카드 + 파스텔 픽셀 보더 + 단차 그림자. hover 는 살짝 떠오르기만 */
+export default function GameCard({ to, title, tagline, bullets, controls, palette, index, art }: GameCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 34 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.16 + index * 0.11, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      style={{ perspective: 1100, flex: '1 1 380px', maxWidth: 470 }}
+      transition={{ delay: 0.12 + index * 0.09, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      style={{ flex: '1 1 380px', maxWidth: 470 }}
     >
       <Link to={to} style={{ display: 'block' }}>
         <motion.div
-          ref={ref}
-          onMouseMove={onMove}
-          onMouseLeave={onLeave}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.985 }}
+          whileHover={{ y: -3, boxShadow: `0 9px 0 ${palette.border}` }}
+          whileTap={{ y: 2, boxShadow: `0 3px 0 ${palette.border}` }}
           style={{
-            rotateX,
-            rotateY,
-            transformStyle: 'preserve-3d',
             position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 20,
-            border: `1px solid ${accent}33`,
-            background: `linear-gradient(160deg, ${accent}14, rgba(12,12,26,.86) 42%)`,
-            boxShadow: `0 20px 60px -28px ${accent}80`,
-            padding: 26,
-            minHeight: 320,
+            borderRadius: 18,
+            border: `3px solid ${palette.border}`,
+            background: '#fff',
+            boxShadow: `0 6px 0 ${palette.border}`,
+            padding: 24,
+            minHeight: 300,
             display: 'flex',
             flexDirection: 'column',
             gap: 14,
           }}
         >
-          {/* 마우스를 따라오는 글레어 */}
-          <motion.div
-            aria-hidden
-            style={{
-              position: 'absolute',
-              inset: 0,
-              pointerEvents: 'none',
-              background: useTransform(
-                [glareX, glareY],
-                ([x, y]) => `radial-gradient(420px circle at ${x} ${y}, ${accent}22, transparent 62%)`,
-              ),
-            }}
-          />
-
-          {/* 상단 아트 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div
                 className="display"
-                style={{ fontSize: 12, letterSpacing: '.22em', color: accent, opacity: 0.85, marginBottom: 8 }}
+                style={{
+                  display: 'inline-block',
+                  fontSize: 11,
+                  letterSpacing: '.16em',
+                  color: '#fff',
+                  background: palette.label,
+                  borderRadius: 6,
+                  padding: '3px 9px',
+                  marginBottom: 10,
+                }}
               >
                 GAME 0{index + 1}
               </div>
-              <h2 className="display" style={{ fontSize: 30, color: accent, textShadow: `0 0 26px ${accent}66` }}>
+              <h2 className="display" style={{ fontSize: 30, color: palette.title, lineHeight: 1.1 }}>
                 {title}
               </h2>
-              <p style={{ color: 'var(--dim)', fontSize: 14, marginTop: 6 }}>{tagline}</p>
+              <p style={{ color: '#6e6f82', fontSize: 14, marginTop: 6 }}>{tagline}</p>
             </div>
-            <div style={{ flexShrink: 0, opacity: 0.95 }}>{art}</div>
+            <div style={{ flexShrink: 0, display: 'grid', justifyItems: 'end', gap: 6 }}>
+              <div className="hearts" aria-hidden>
+                <img src="/deco/heart-pink.png" alt="" className="pixel" />
+                <img src="/deco/heart-pink.png" alt="" className="pixel" />
+                <img src="/deco/heart-pink.png" alt="" className="pixel" style={{ opacity: 0.35 }} />
+              </div>
+              {art}
+            </div>
           </div>
 
-          <ul style={{ listStyle: 'none', display: 'grid', gap: 8, marginTop: 2 }}>
+          <ul style={{ listStyle: 'none', display: 'grid', gap: 7, marginTop: 2 }}>
             {bullets.map(b => (
-              <li key={b} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 14, color: '#c3cbe8' }}>
-                <span style={{ color: accent, lineHeight: 1.35 }}>▸</span>
+              <li key={b} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 14, color: '#4e5060' }}>
+                <span style={{ color: palette.accent, lineHeight: 1.4 }}>▸</span>
                 <span>{b}</span>
               </li>
             ))}
           </ul>
 
           <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--faint)' }}>
-              {controls}
-            </div>
-            <motion.div
-              className="display"
-              whileHover={{ x: 4 }}
+            <div
+              className="mono"
               style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color: '#05050c',
-                background: accent,
-                padding: '10px 18px',
-                borderRadius: 10,
-                boxShadow: `0 0 24px ${accent}55`,
-                whiteSpace: 'nowrap',
+                fontSize: 11,
+                color: '#fff',
+                background: palette.label,
+                borderRadius: 6,
+                padding: '4px 9px',
+                letterSpacing: '.06em',
               }}
             >
+              {controls}
+            </div>
+            <span className="btn-solid display" style={{ background: palette.btn }}>
               PLAY ▶
-            </motion.div>
+            </span>
           </div>
         </motion.div>
       </Link>

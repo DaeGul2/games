@@ -9,9 +9,9 @@ export const ko = {
   /** <html lang> */
   lang: 'ko',
   /** 본문 CSS 폰트 스택 */
-  fontBody: "'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
+  fontBody: "'Pretendard', 'Noto Sans Thai', 'Malgun Gothic', 'Noto Sans KR', sans-serif",
   /** 캔버스 글자 폰트 (크기 뒤에 붙는다) */
-  canvasFont: '"Malgun Gothic", sans-serif',
+  canvasFont: 'Pretendard, "Noto Sans Thai", "Malgun Gothic", sans-serif',
   /** 큰 숫자 줄임 단위 — [기준값, 접미사] 큰 것부터. 태국어는 [[1e6,'M'],[1e3,'K']] 처럼 바꿔도 된다 */
   numUnits: [[1e8, '억'], [1e4, '만'], [1e3, '천']] as [number, string][],
 
@@ -62,7 +62,8 @@ export const ko = {
     plays: '오늘 플레이 {n}회',
     reset: '기록 전체 초기화 (운영자용)',
     resetConfirm: '모든 게임 기록을 삭제할까요? (되돌릴 수 없음)',
-    credit: '모든 그래픽·사운드는 코드로 생성됩니다 · 외부 저작물 없음',
+    /** 홈 맨 아래 말풍선 */
+    bubble: '즐겁게 게임하고 맛있는 K-푸드 받아가세요!',
   },
 
   /* ───────── 벡터 스트라이크 ───────── */

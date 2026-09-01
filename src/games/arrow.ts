@@ -378,9 +378,9 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
   /* ===== 그리기 ===== */
   function drawRoad() {
     // 하늘·먼 배경 (아주 조용하게)
-    ctx.fillStyle = '#0d1018';
+    ctx.fillStyle = '#1c2343';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#141a26';
+    ctx.fillStyle = '#202a4f';
     ctx.fillRect(0, 0, W, HORIZON);
 
     const zTop = -0.3, zBot = 1;
@@ -584,7 +584,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     ctx.fillText(tr(T.arrow.wave, { n: wave }), CX, 32);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#333a55';
+    ctx.fillStyle = '#6b74a0';
     ctx.font = '11px Consolas, monospace';
     ctx.fillText(T.arrow.keys, 18, H - 12);
     if (showFps) {

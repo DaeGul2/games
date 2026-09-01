@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Background from './Background';
+import Logo from './Logo';
 
 export default function Layout() {
   const location = useLocation();
@@ -8,6 +9,7 @@ export default function Layout() {
   return (
     <>
       <Background />
+      <Logo />
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}

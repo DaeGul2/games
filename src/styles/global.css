@@ -1,22 +1,74 @@
-/* ===== 디자인 토큰 ===== */
+/* ===== 디자인 토큰 — 흰 바탕 + 레트로 픽셀아트 (aT Bangkok 시안) =====
+   색은 전부 여기서만 정한다. 컴포넌트는 var()만 쓴다. */
 :root {
-  --bg: #05050c;
-  --bg-2: #0b0b18;
-  --panel: rgba(16, 16, 32, 0.72);
-  --line: rgba(120, 130, 200, 0.16);
-  --text: #e9eeff;
-  --dim: #8b93b8;
-  --faint: #4a5070;
+  --bg: #f8f8f4;
+  --bg-2: #f3f2ee;
+  --panel: #ffffff;
+  --line: #cfc9f6;
+  --line-soft: #d9d4f8;
+  --line-dark: #54507a;
+  --line-mid: #8f89c9;
+  --divider: #e7e4f7;
 
-  --cyan: #00ffc8;
-  --violet: #b09aff;
-  --pink: #ff5f9e;
-  --gold: #ffd700;
-  --blue: #6ea8ff;
+  --text: #2e2e3a;
+  --dim: #6a6a7a;
+  --faint: #8c8ca1;
 
-  /* 한글 본문은 시스템 폰트로 — 외부 웹폰트(수 MB)를 받지 않아 첫 로딩이 즉시 끝난다 */
-  --font-display: 'Orbitron', 'Segoe UI', sans-serif;
-  --font-body: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  /* 픽셀 그림자 — blur 없이 아래로 툭 떨어지는 단차 */
+  --shadow-soft: 0 4px 0 rgba(134, 125, 201, 0.18);
+  --shadow-panel: 0 6px 0 rgba(180, 172, 228, 0.22);
+  --shadow-btn: 0 4px 0 rgba(0, 0, 0, 0.1);
+
+  --teal: #38cfc3;
+  --mint: #44e2b5;
+  --violet: #9b7cff;
+  --lavender: #c2a4ff;
+  --orange: #ffa63d;
+  --yellow: #ffc84a;
+  --pink: #ff83c9;
+  --coral: #ff8a66;
+  --sky: #9edcff;
+  --green: #6edb7b;
+  --red: #e96d73;
+  --ok: #31c48d;
+
+  /* 홈 소개문 강조색 */
+  --gold: #ffb931;
+  --cyan: #30c77b;
+
+  /* 플레이 보드 안쪽 — 여기만 어둡게 남겨 시선을 모은다 */
+  --board: #1c2343;
+  --board-2: #202a4f;
+  --board-grid: #2f3a65;
+
+  /* 게임별 팔레트 — 카드·순위표·플레이 페이지가 같은 값을 쓴다 */
+  --g-shooter: #a77dff;
+  --g-shooter-border: #d1bbff;
+  --g-shooter-title: #7e57e8;
+  --g-shooter-btn: #9c79ff;
+  --g-shooter-label: #8e73e9;
+
+  --g-tower: #ffa63d;
+  --g-tower-border: #ffd198;
+  --g-tower-title: #f19319;
+  --g-tower-btn: #ffa52d;
+  --g-tower-label: #f19c2c;
+
+  --g-merge: #ff8ab9;
+  --g-merge-border: #ffc3da;
+  --g-merge-title: #f56aa4;
+  --g-merge-btn: #ff8dbe;
+  --g-merge-label: #f77fb2;
+
+  --g-arrow: #33d6c5;
+  --g-arrow-border: #87e9df;
+  --g-arrow-title: #1cc7b6;
+  --g-arrow-btn: #3ad7cc;
+  --g-arrow-label: #17bdb4;
+
+  /* 제목은 픽셀 서체, 본문은 Pretendard. 태국어는 두 서체 모두 글리프가 없어 Noto Sans Thai로 떨어진다 */
+  --font-display: 'Galmuri11', 'Noto Sans Thai', 'Malgun Gothic', monospace;
+  --font-body: 'Pretendard', 'Noto Sans Thai', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 }
 
 * {
@@ -25,11 +77,17 @@
   box-sizing: border-box;
 }
 
+/* 배경색은 html 에만 — body 에도 칠하면 z-index:-1 인 .bg-layer 위에 덮여 장식이 안 보인다 */
+html {
+  background: var(--bg);
+}
+
 html,
 body {
-  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.55;
   min-height: 100%;
   -webkit-font-smoothing: antialiased;
 }
@@ -43,14 +101,112 @@ a {
   text-decoration: none;
 }
 
-/* ===== 배경 레이어 — 조용하게 =====
-   색색 빛망울과 흐르는 그리드가 게임 뒤에서 계속 움직여 정신사나웠다.
-   이제 아주 옅은 세로 그라디언트만 남긴다. */
+/* ===== 배경 — 옅은 아이보리 + 픽셀 구름·반짝이 (Background.tsx) ===== */
 .bg-layer {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, #06060d 0%, #0a0a14 100%);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 픽셀아트는 보간 없이 — 축소해도 흐려지지 않게 */
+.pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.bg-layer img {
+  position: absolute;
+  height: auto;
+}
+
+.bg-cloud {
+  opacity: 0.9;
+  animation: drift 70s linear infinite;
+}
+.bg-cloud.slow {
+  animation-duration: 110s;
+}
+
+.bg-star {
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
+.bg-skyline {
+  bottom: 22px;
+  width: min(48vw, 700px);
+  opacity: 0.95;
+}
+
+@keyframes drift {
+  from { transform: translateX(-220px); }
+  to { transform: translateX(calc(100vw + 220px)); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* 지평선 — 화면 맨 아래 픽셀 풀밭 띠 */
+.bg-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  background:
+    linear-gradient(180deg, transparent 0 6px, #bfe9c4 6px 12px, #9fdba8 12px 20px, #8ccf98 20px 100%);
+}
+.bg-ground::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 6px;
+  background-image: linear-gradient(90deg, #6ecf83 0 6px, transparent 6px 12px);
+  background-size: 12px 6px;
+}
+
+/* ===== 픽셀아트 장식 (public/deco) ===== */
+/* 화면 구석에 고정되는 큰 장식 — 캐릭터·상점·푸드트럭 */
+.deco-fixed {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 픽셀 말풍선 — 그림을 배경으로 깔고 글자를 얹는다 */
+.bubble {
+  position: relative;
+  display: inline-block;
+  background: url('/deco/bubble.png') no-repeat center / 100% 100%;
+  padding: 12px 26px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6f6b;
+  white-space: nowrap;
+  image-rendering: pixelated;
+}
+
+/* 카드 상단 하트 3개 */
+.hearts {
+  display: flex;
+  gap: 3px;
+}
+.hearts img {
+  width: 16px;
+  height: auto;
+}
+
+/* 좁은 화면에서는 큰 장식을 숨긴다 — UI와 겹치면 안 된다 */
+@media (max-width: 1100px) {
+  .deco-wide,
+  .deco-fixed {
+    display: none;
+  }
 }
 
 /* ===== 공통 컴포넌트 ===== */
@@ -60,97 +216,169 @@ a {
   padding: 0 24px;
 }
 
-.glass {
+/* 흰 패널 + 파스텔 픽셀 보더 + 단차 그림자 */
+.glass,
+.panel {
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 3px solid var(--line-soft);
   border-radius: 18px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-panel);
 }
 
 .mono {
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: 'Galmuri11', 'Consolas', 'Courier New', monospace;
   font-variant-numeric: tabular-nums;
 }
 
 .display {
   font-family: var(--font-display);
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.small-ui {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* 상단 배지 (NOW OPEN) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #f3fffc;
+  border: 2px solid #64dccf;
+  color: #2dae9c;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+/* 메뉴로 돌아가기 */
+.btn-menu {
+  display: inline-block;
+  background: #fff;
+  border: 2px solid #a79fe6;
+  color: #5a5796;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  box-shadow: 0 3px 0 rgba(167, 159, 230, 0.22);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn-menu:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 rgba(167, 159, 230, 0.3);
+}
+.btn-menu:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(167, 159, 230, 0.22);
+}
+
+/* 조작 힌트 칩 */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #f8f7ff;
+  border: 2px solid var(--line);
+  color: #5b5a86;
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.chip kbd {
+  font-family: 'Galmuri11', 'Consolas', monospace;
+  background: #fff;
+  border: 1.5px solid #d2ccf6;
+  border-bottom-width: 3px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #4d4b7a;
+}
+
+/* 색 채운 버튼 (PLAY) */
+.btn-solid {
+  display: inline-block;
+  color: #fff;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-btn);
+  padding: 10px 18px;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn-solid:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* 안내 띠 (푸터) */
+.notice {
+  display: inline-block;
+  background: #f4fbff;
+  border: 2px solid #cdebf6;
+  color: #3b6b80;
+  border-radius: 12px;
+  padding: 9px 18px;
+  font-size: 12px;
 }
 
 /* 등급 색상 */
-.g-S { color: var(--gold); }
-.g-A { color: var(--pink); }
-.g-B { color: var(--cyan); }
-.g-C { color: var(--blue); }
-.g-D { color: var(--dim); }
+.g-S { color: #f5a623; }
+.g-A { color: #f56aa4; }
+.g-B { color: #1cc7b6; }
+.g-C { color: #5b8def; }
+.g-D { color: var(--faint); }
 
-/* 게임 캔버스 프레임 — 네온 테두리 + 코너 마커 */
-/* 캔버스가 매 프레임 다시 그려지므로 backdrop-filter를 쓰면 안 된다.
-   (배경 블러를 프레임마다 재계산해 저사양 PC에서 프레임이 떨어짐) */
+/* ===== 게임 캔버스 프레임 — 흰 프레임 안에 어두운 보드 =====
+   캔버스가 매 프레임 다시 그려지므로 backdrop-filter는 쓰지 않는다. */
 .stage {
   position: relative;
-  padding: 14px;
-  border-radius: 20px;
-  background: #0a0a16;
-  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 18px;
+  background: #fff;
+  border: 3px solid currentColor;
+  box-shadow: 0 6px 0 rgba(120, 210, 204, 0.14);
   contain: paint;
 }
 
 .stage canvas {
   display: block;
   border-radius: 10px;
-  background: #07070f;
+  background: var(--board);
   max-width: 100%;
 }
 
+/* 코너 픽셀 마커 */
 .stage::before,
 .stage::after {
   content: '';
   position: absolute;
-  width: 26px;
-  height: 26px;
-  border: 2px solid currentColor;
-  opacity: 0.55;
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  opacity: 0.7;
   pointer-events: none;
 }
-
-.stage::before {
-  top: 8px;
-  left: 8px;
-  border-right: none;
-  border-bottom: none;
-  border-radius: 12px 0 0 0;
-}
-
-.stage::after {
-  bottom: 8px;
-  right: 8px;
-  border-left: none;
-  border-top: none;
-  border-radius: 0 0 12px 0;
-}
-
-/* 게임 중에는 배경 애니메이션을 정지 — 캔버스에 CPU/GPU를 몰아준다 */
-.bg-layer.quiet .bg-grid {
-  animation: none;
-  opacity: 0.55;
-}
-
-.bg-layer.quiet .bg-orb {
-  filter: blur(56px);
-  opacity: 0.26;
-}
+.stage::before { top: -3px; left: -3px; }
+.stage::after { bottom: -3px; right: -3px; }
 
 /* 접근성: 모션 최소화 설정 존중 */
 @media (prefers-reduced-motion: reduce) {
-  .bg-grid {
+  .bg-cloud,
+  .bg-star {
     animation: none;
   }
 }
 
 ::selection {
-  background: rgba(0, 255, 200, 0.3);
+  background: rgba(155, 124, 255, 0.25);
 }
 
 /* 스크롤바 */
@@ -161,9 +389,9 @@ a {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #232a45;
+  background: #d9d4f8;
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #303a5e;
+  background: #c2bbf0;
 }

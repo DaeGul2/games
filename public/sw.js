@@ -2,7 +2,7 @@
  * 오프라인 캐시 — 행사장 와이파이가 끊겨도 부스 PC에서 게임이 계속 돌아가도록.
  * 한 번 로드되면 모든 정적 자원이 캐시되고, 이후에는 네트워크 없이도 실행된다.
  */
-const CACHE = 'kfood-arcade-v1';
+const CACHE = 'kfood-arcade-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -23,7 +23,7 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
-  const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'cdn.jsdelivr.net';
   if (!sameOrigin && !isFont) return;
 
   // 페이지 이동은 네트워크 우선 (배포된 새 버전을 바로 받도록), 실패 시 캐시된 셸로 폴백

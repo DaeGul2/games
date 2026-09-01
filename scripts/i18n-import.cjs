@@ -45,8 +45,8 @@ for (const r of rows.slice(1)) {
 const dict = unflatten(ko, entries);
 dict.lang = lang;
 if (lang === 'th') {
-  dict.fontBody = "'Leelawadee UI', 'Noto Sans Thai', Tahoma, sans-serif";
-  dict.canvasFont = '"Leelawadee UI", "Noto Sans Thai", Tahoma, sans-serif';
+  dict.fontBody = "'Noto Sans Thai', 'Leelawadee UI', Tahoma, sans-serif";
+  dict.canvasFont = '"Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif';
   dict.numUnits = [[1e6, 'M'], [1e3, 'K']];
 }
 

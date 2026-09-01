@@ -608,7 +608,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
       btn(BTN_D, T.tower.btnDrop, false);
     }
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#333a55';
+    ctx.fillStyle = '#6b74a0';
     ctx.font = '11px Consolas, monospace';
     ctx.fillText(T.tower.keys, 22, H - 18);
     if (showFps) {
@@ -731,7 +731,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
     // 배경
-    ctx.fillStyle = '#08080f';
+    ctx.fillStyle = '#1c2343';
     ctx.fillRect(0, 0, W, H);
     for (const s of stars) {
       ctx.fillStyle = `rgba(200,215,255,${s.a})`;

@@ -15,7 +15,7 @@
  *   삼각수 Tₙ = n(n+1)/2. 등차면 큰 걸 만들 이유가 없고, 지수면 후반이 폭주한다.
  *   최종 단계(떡뽁이) 둘을 합치면 원작의 수박처럼 **사라지고** 큰 보너스를 준다 — 자리를 비워주는 보상.
  */
-import { Bodies, Body, Composite, Engine, Events, Sleeping, type Pair } from 'matter-js';
+import { Bodies, Body, Composite, Engine, Events, type Pair } from 'matter-js';
 import { sound, type Pattern } from '../lib/sound';
 import { gradeOf, saveScore, getBest, KEYS, type Grade } from '../lib/score';
 import { Quality } from '../lib/perf';
@@ -110,13 +110,16 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
   engine.gravity.y = 1;
   engine.positionIterations = 10;
   engine.velocityIterations = 8;
-  engine.enableSleeping = true;
+  // 잠들기 끄기 — Matter는 받침이 사라져도 잠든 몸체를 깨우지 않아 구슬이 공중에/벽에 붙어 있었다.
+  // 깨우는 휴리스틱(wakeUnsupported)으로 두 번 고쳤지만 케이스가 계속 새어 나와, 원인을 없앤다.
+  // 조각은 많아야 60개 안팎이라 항상 시뮬레이션해도 비용은 무시할 수준.
+  engine.enableSleeping = false;
 
   const sideH = FLOOR_Y - WALL_TOP;
   const walls = [
     Bodies.rectangle((BOX_L + BOX_R) / 2, FLOOR_Y + WALL / 2, BOX_R - BOX_L + WALL * 2, WALL, { isStatic: true, friction: 0.6 }),
-    Bodies.rectangle(BOX_L - WALL / 2, WALL_TOP + sideH / 2, WALL, sideH, { isStatic: true, friction: 0.4 }),
-    Bodies.rectangle(BOX_R + WALL / 2, WALL_TOP + sideH / 2, WALL, sideH, { isStatic: true, friction: 0.4 }),
+    Bodies.rectangle(BOX_L - WALL / 2, WALL_TOP + sideH / 2, WALL, sideH, { isStatic: true, friction: 0.05 }),
+    Bodies.rectangle(BOX_R + WALL / 2, WALL_TOP + sideH / 2, WALL, sideH, { isStatic: true, friction: 0.05 }),
   ];
   Composite.add(engine.world, walls);
 
@@ -163,42 +166,6 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     Composite.remove(engine.world, p.body);
     const i = pieces.indexOf(p);
     if (i >= 0) pieces.splice(i, 1);
-  }
-
-  /**
-   * 받침 없이 잠든 조각을 깨운다 — 매 스텝.
-   *
-   * Matter는 접촉 상대가 사라지거나 굴러가 버려도 잠든 몸체를 깨우지 않는다.
-   * 그래서 벽에 기대 잠든 구슬은 아래가 비어도 공중에 떠 있었다 (사용자 제보).
-   * 합체 순간에만 깨우는 걸로는 부족했다 — 아래 구슬이 굴러가는 경우를 못 잡고,
-   * 깨워도 속도 0이면 한두 프레임 만에 다시 잠들었다.
-   *
-   * 받침 = 바닥에 닿았거나, 다른 구슬이 **아래쪽**에서 접촉 중.
-   * 벽만 닿은 건 받침이 아니다 — 벽은 마찰로 매달리게 할 뿐 떠받치지 않는다.
-   * 벽에 붙어 있으면 옆 구슬이 거의 바로 아래에 있어야만 받침으로 친다 (기울어 끼인 경우 제외).
-   */
-  function wakeUnsupported() {
-    for (const p of pieces) {
-      const b = p.body;
-      if (!b.isSleeping) continue;
-      const r = p.def.r;
-      if (b.position.y + r >= FLOOR_Y - 1.5) continue;
-      const onWall = b.position.x - r <= BOX_L + 1.5 || b.position.x + r >= BOX_R - 1.5;
-      const need = onWall ? 0.9 : 0.35;
-      let supported = false;
-      for (const q of pieces) {
-        if (q === p) continue;
-        const dx = q.body.position.x - b.position.x, dy = q.body.position.y - b.position.y;
-        const rr = r + q.def.r;
-        if (dx * dx + dy * dy > (rr + 1.5) * (rr + 1.5)) continue;
-        if (dy > Math.abs(dx) * need) { supported = true; break; }
-      }
-      if (!supported) {
-        Sleeping.set(b, false);
-        // 깨운 직후 속도 0이면 바로 다시 잠든다 — 살짝 밀어 떨어질 시간을 준다
-        Body.setVelocity(b, { x: b.velocity.x, y: Math.max(b.velocity.y, 0.6) });
-      }
-    }
   }
 
   /* ===== 합치기 =====
@@ -375,7 +342,6 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     while (acc >= STEP) {
       Engine.update(engine, STEP);
       acc -= STEP;
-      wakeUnsupported();
     }
     resolveMerges();
 
@@ -551,7 +517,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
-    ctx.fillStyle = '#08080f';
+    ctx.fillStyle = '#1c2343';
     ctx.fillRect(0, 0, W, H);
 
     drawBox();
@@ -579,7 +545,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     drawPanel();
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#333a55';
+    ctx.fillStyle = '#6b74a0';
     ctx.font = '11px Consolas, monospace';
     ctx.fillText(T.merge.keys, 20, H - 16);
     if (showFps) {

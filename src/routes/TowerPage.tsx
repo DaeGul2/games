@@ -2,13 +2,15 @@ import { useCallback } from 'react';
 import GameShell from '../ui/GameShell';
 import { createTower } from '../games/tower';
 import { T } from '../i18n';
+import { PALETTES } from '../ui/palettes';
 
 export default function TowerPage() {
   const mount = useCallback((cv: HTMLCanvasElement) => createTower(cv), []);
   return (
     <GameShell
       title={T.tower.title}
-      accent="#ffb03a"
+      tagline={T.tower.tagline}
+      palette={PALETTES.tower}
       mount={mount}
       hints={[
         { key: '←→', label: T.tower.hintMove },

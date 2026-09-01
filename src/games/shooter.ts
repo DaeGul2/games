@@ -51,9 +51,19 @@ const BGM_BOSS: Pattern = {
   lead: [330, 0, 0, 0, 466, 0, 0, 0, 330, 0, 0, 330, 466, 0, 494, 0],
 };
 
+/**
+ * 연발 효과음 스로틀 — 5레벨 무기는 초당 55발, 보스에 박히면 초당 50번 넘게 hit가 울린다.
+ * 매번 오실레이터/노이즈 노드를 새로 만들면 몇 분 뒤 수만 개가 쌓여 GC로 프레임이 끊긴다
+ * ("뒤로 갈수록 렉"의 원인). 사람 귀는 50ms 안의 연타를 구분 못 하므로 그 안은 한 번만 낸다.
+ */
+function throttled(minGap: number, fn: () => void) {
+  let last = -1e9;
+  return () => { const now = performance.now(); if (now - last < minGap) return; last = now; fn(); };
+}
+
 const SFX = {
-  shoot: () => sound.tone({ f: 1200, f2: 600, dur: 0.05, vol: 0.05 }),
-  hit: () => sound.noise({ dur: 0.04, vol: 0.1, fc: 2600 }),
+  shoot: throttled(70, () => sound.tone({ f: 1200, f2: 600, dur: 0.05, vol: 0.05 })),
+  hit: throttled(60, () => sound.noise({ dur: 0.04, vol: 0.1, fc: 2600 })),
   boom: () => { sound.noise({ dur: 0.25, vol: 0.28, fc: 1100 }); sound.tone({ f: 220, f2: 55, dur: 0.25, type: 'sine', vol: 0.25 }); },
   bigBoom: () => { sound.noise({ dur: 0.9, vol: 0.5, fc: 750 }); sound.tone({ f: 150, f2: 32, dur: 0.9, type: 'sawtooth', vol: 0.3 }); },
   hurt: () => { sound.tone({ f: 220, f2: 80, dur: 0.3, type: 'sawtooth', vol: 0.32 }); sound.noise({ dur: 0.2, vol: 0.25, fc: 800 }); },
@@ -509,14 +519,16 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
       p.x0 += Math.sin(p.t * 2.5) * 26 * dt; // 좌우 사인 흔들림
       const dx0 = player.x - p.x0, dy0 = player.y - p.y;
       const dist = Math.hypot(dx0, dy0);
-      if (dist < 150) {                       // 자석: 가까우면 플레이어 쪽으로 빨려옴
-        const pull = (1 - dist / 150) * 420 * dt;
+      if (dist < 200) {                       // 자석: 가까우면 플레이어 쪽으로 빨려옴
+        const pull = (1 - dist / 200) * 620 * dt;
         p.x0 += (dx0 / (dist || 1)) * pull;
         p.y += (dy0 / (dist || 1)) * pull;
       }
       p.x = p.x0;
+      // 획득 판정은 **그림 기준** — 기체 날개(반폭 21) + 캡슐 광륜(22)이 닿으면 먹은 것.
+      // 피격 코어(r=11)와 달리 아이템은 넉넉해야 "분명 갔는데 안 먹힘"이 없다.
       const dx = p.x - player.x, dy = p.y - player.y;
-      if (dx * dx + dy * dy < 32 * 32) {
+      if (dx * dx + dy * dy < 44 * 44) {
         p.dead = true;
         if (player.weapon < 5) { player.weapon++; score += 200; addFloat(p.x, p.y, 'POWER UP! Lv.' + player.weapon, '#00ffc8'); SFX.power(); }
         else { score += 500; addFloat(p.x, p.y, 'MAX POWER +500', '#ffd700'); SFX.maxpower(); }
@@ -647,7 +659,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function draw() {
     ctx.save();
     // alpha:false 컨텍스트라 배경을 직접 칠한다 (clearRect는 검정으로 비움)
-    ctx.fillStyle = '#07070f';
+    ctx.fillStyle = '#1c2343';
     ctx.fillRect(0, 0, W, H);
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 20, (Math.random() - 0.5) * shake * 20);
 
