@@ -8,13 +8,7 @@ import TowerPage from './routes/TowerPage';
 import MergePage from './routes/MergePage';
 import ArrowPage from './routes/ArrowPage';
 import './styles/global.css';
-import { T } from './i18n';
-
-// 언어별 문서 설정 — 제목·lang·본문 폰트는 사전에서 온다
-document.documentElement.lang = T.lang;
-document.documentElement.style.setProperty('--font-body', T.fontBody);
-document.title = T.meta.title;
-document.querySelector('meta[name="description"]')?.setAttribute('content', T.meta.description);
+import './i18n';
 
 const router = createBrowserRouter([
   {

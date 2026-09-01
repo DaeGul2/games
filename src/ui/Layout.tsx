@@ -2,17 +2,21 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Background from './Background';
 import Logo from './Logo';
+import LangToggle from './LangToggle';
+import { useLang } from '../i18n';
 
 export default function Layout() {
   const location = useLocation();
+  const lang = useLang();
 
   return (
     <>
       <Background />
       <Logo />
+      <LangToggle />
       <AnimatePresence mode="wait">
         <motion.main
-          key={location.pathname}
+          key={location.pathname + lang}
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}

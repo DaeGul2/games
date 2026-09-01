@@ -50,28 +50,28 @@ const BASE_R = 15;
  * 진화 순서 — 간식에서 시작해 한 상 차림으로 끝난다.
  * 색은 이웃끼리 따뜻함/차가움이 번갈아 오도록 배치했다.
  */
-const CHAIN: [SpriteKey, string, string][] = [
-  ['coinbread',  T.foods.coinbread,  '#ffc23a'],
-  ['mandu',      T.foods.mandu,      '#35d6a4'],
-  ['gimbap',     T.foods.gimbap,     '#ff6f5e'],
-  ['sotteok',    T.foods.sotteok,    '#4aa8ff'],
-  ['hotdog',     T.foods.hotdog,     '#ffa62b'],
-  ['chicken',    T.foods.chicken,    '#a97bff'],
-  ['cupramyeon', T.foods.cupramyeon, '#9ede3a'],
-  ['cupteok',    T.foods.cupteok,    '#ff5f9e'],
-  ['buldak',     T.foods.buldak,     '#22c1c3'],
-  ['kimchi',     T.foods.kimchi,     '#ff7043'],
-  ['ramyeon',    T.foods.ramyeon,    '#c9a7ff'],
-  ['tteokbokki', T.foods.tteokbokki, '#ffd700'],
+const CHAIN: [SpriteKey, string][] = [
+  ['coinbread', '#ffc23a'],
+  ['mandu', '#35d6a4'],
+  ['gimbap', '#ff6f5e'],
+  ['sotteok', '#4aa8ff'],
+  ['hotdog', '#ffa62b'],
+  ['chicken', '#a97bff'],
+  ['cupramyeon', '#9ede3a'],
+  ['cupteok', '#ff5f9e'],
+  ['buldak', '#22c1c3'],
+  ['kimchi', '#ff7043'],
+  ['ramyeon', '#c9a7ff'],
+  ['tteokbokki', '#ffd700'],
 ];
 
 /** 삼각수 Tₙ = n(n+1)/2 — 등차면 큰 걸 만들 이유가 없고, 지수면 후반이 폭주한다 */
 const tri = (n: number) => (n * (n + 1)) / 2;
 
-export const LEVELS: MergeLevel[] = CHAIN.map(([key, name, color], i) => ({
+export const LEVELS: MergeLevel[] = CHAIN.map(([key, color], i) => ({
   level: i + 1,
   key,
-  name,
+  get name() { return T.foods[key]; },
   color,
   r: +(BASE_R * Math.pow(RATIO, i)).toFixed(2),
   // 레벨 n이 만들어질 때 T(n-1)점. 1단계는 떨어뜨리기만 하므로 0점.

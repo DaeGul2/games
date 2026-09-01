@@ -93,7 +93,6 @@ export const ko = {
     tagline: '무게중심을 지배하라',
     bullets: [
       '실제 물리 엔진 — 중력만 작용합니다',
-      '음식 10종, 모양이 곧 성격 (김밥은 굴러갑니다)',
       '혼자 점수 도전 · 둘이서 번갈아 대전',
     ],
     hintMove: '이동',
@@ -109,7 +108,6 @@ export const ko = {
     duoTitle: '둘이',
     duoSub: '번갈아 쌓기',
     duoNote: '먼저 떨어뜨린 쪽이 패배',
-    foodList: '음식 {n}종 — 모양이 곧 성격입니다',
     start: '숫자키 또는 화면을 눌러 시작',
     placed: '쌓은 개수 {n}',
     turn: '{p}P 차례',
@@ -172,7 +170,7 @@ export const ko = {
     tagline: '젓가락을 불려 쓸어담아라',
     bullets: [
       '좌우로만 움직이면 발사는 자동',
-      '내려오는 게이트를 골라 화력을 키움',
+      '내려오는 아이템을 골라 화력을 키움',
       '못 죽인 적이 내려오면 체력이 깎임',
     ],
     hintMove: '좌우 이동',
@@ -184,7 +182,7 @@ export const ko = {
     power: '화력 {n}',
     stats: '젓가락 {n} · 공격 x{mul} · 연사 {rate} · 관통 {pierce}',
     burst: '공격 ×{n}  {t}s',
-    baseline: '기준선 대비 {n}%',
+    baseline: '기본 공격력 대비 {n}%',
     wave: '구간 {n}',
     keys: '마우스/←→ 좌우 · 발사는 자동 · R 처음으로 · M 소리',
     intro1: '좌우로만 움직이세요. 발사는 알아서 합니다',

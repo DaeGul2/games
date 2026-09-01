@@ -35,11 +35,11 @@ const CONFIG = {
     // 시뮬레이션 분포로 정했다 (초반 유예 3구간 반영 후).
     // 부스 손님 모델(반응 0.3초·오차 있음) 중앙 12,560 · 23구간 · 2분 53초
     // 요령파(아이템 최우선) 중앙 13,563 · 24구간 · 2분 57초
-    { min: 40000, label: 'S', color: '#ffd700', msg: T.arrow.gradeS },
-    { min: 22000, label: 'A', color: '#ff5f9e', msg: T.grade.A },
-    { min: 12000, label: 'B', color: '#00ffc8', msg: T.grade.B },
-    { min: 5000, label: 'C', color: '#6ea8ff', msg: T.grade.C },
-    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
+    { min: 40000, label: 'S', color: '#ffd700', get msg() { return T.arrow.gradeS; } },
+    { min: 22000, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
+    { min: 12000, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
+    { min: 5000, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
+    { min: 0, label: 'D', color: '#8892a6', get msg() { return T.grade.D; } },
   ] as Grade[],
 };
 

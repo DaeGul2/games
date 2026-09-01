@@ -22,11 +22,11 @@ import {
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
   grades: [
-    { min: 30000, label: 'S', color: '#ffd700', msg: T.shooter.gradeS },
-    { min: 20000, label: 'A', color: '#ff5f9e', msg: T.grade.A },
-    { min: 12000, label: 'B', color: '#00ffc8', msg: T.grade.B },
-    { min: 5000, label: 'C', color: '#6ea8ff', msg: T.grade.C },
-    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
+    { min: 30000, label: 'S', color: '#ffd700', get msg() { return T.shooter.gradeS; } },
+    { min: 20000, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
+    { min: 12000, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
+    { min: 5000, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
+    { min: 0, label: 'D', color: '#8892a6', get msg() { return T.grade.D; } },
   ] as Grade[],
   lives: 3,
   finalWave: 15,

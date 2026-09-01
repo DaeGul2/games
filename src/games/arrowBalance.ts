@@ -137,30 +137,29 @@ export interface Item {
   apply: (s: Stats) => void;
 }
 
-const L = T.arrow.items;
 export const ITEMS: Item[] = [
   /* ── 영구 성장 (완만) ── */
-  { key: 'n3',  sprite: 'gimbap',     ...L.n3, color: '#ffc23a', weight: 22,
+  { key: 'n3',  sprite: 'gimbap',     get tag() { return T.arrow.items.n3.tag; }, get what() { return T.arrow.items.n3.what; }, color: '#ffc23a', weight: 22,
     apply: s => { s.n += 2; } },
-  { key: 'n6',  sprite: 'sotteok',    ...L.n6, color: '#ffa62b', weight: 9,
+  { key: 'n6',  sprite: 'sotteok',    get tag() { return T.arrow.items.n6.tag; }, get what() { return T.arrow.items.n6.what; }, color: '#ffa62b', weight: 9,
     apply: s => { s.n += 4; } },
-  { key: 'nx2', sprite: 'mandu',      ...L.nx2, color: '#35d6a4', weight: 5,
+  { key: 'nx2', sprite: 'mandu',      get tag() { return T.arrow.items.nx2.tag; }, get what() { return T.arrow.items.nx2.what; }, color: '#35d6a4', weight: 5,
     apply: s => { s.n = Math.max(s.n + 2, Math.round(s.n * 1.5)); } },
-  { key: 'dx2', sprite: 'cupramyeon', ...L.dx2, color: '#ff6f5e', weight: 16,
+  { key: 'dx2', sprite: 'cupramyeon', get tag() { return T.arrow.items.dx2.tag; }, get what() { return T.arrow.items.dx2.what; }, color: '#ff6f5e', weight: 16,
     apply: s => { s.mul *= 1.3; } },
-  { key: 'rate', sprite: 'tteokbokki', ...L.rate, color: '#4aa8ff', weight: 13,
+  { key: 'rate', sprite: 'tteokbokki', get tag() { return T.arrow.items.rate.tag; }, get what() { return T.arrow.items.rate.what; }, color: '#4aa8ff', weight: 13,
     apply: s => { s.rate = Math.min(RATE_CAP, s.rate * 1.2); } },
-  { key: 'pierce', sprite: 'hotdog',  ...L.pierce, color: '#a97bff', weight: 9,
+  { key: 'pierce', sprite: 'hotdog',  get tag() { return T.arrow.items.pierce.tag; }, get what() { return T.arrow.items.pierce.what; }, color: '#a97bff', weight: 9,
     apply: s => { s.pierce += 1; } },
   /* ── 생존 ── */
-  { key: 'hp',  sprite: 'chicken',    ...L.hp, color: '#9ede3a', weight: 8,
+  { key: 'hp',  sprite: 'chicken',    get tag() { return T.arrow.items.hp.tag; }, get what() { return T.arrow.items.hp.what; }, color: '#9ede3a', weight: 8,
     apply: s => { s.maxHp += 40; s.hp = Math.min(s.maxHp, s.hp + 40); } },
-  { key: 'heal', sprite: 'coinbread', ...L.heal, color: '#66e0a0', weight: 6,
+  { key: 'heal', sprite: 'coinbread', get tag() { return T.arrow.items.heal.tag; }, get what() { return T.arrow.items.heal.what; }, color: '#66e0a0', weight: 6,
     apply: s => { s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.5); } },
   /* ── 일시 폭발 (7초) — 숫자가 터지는 맛은 여기서 낸다 ── */
-  { key: 'dx3', sprite: 'buldak',     ...L.dx3, color: '#ff3d2e', weight: 9,
+  { key: 'dx3', sprite: 'buldak',     get tag() { return T.arrow.items.dx3.tag; }, get what() { return T.arrow.items.dx3.what; }, color: '#ff3d2e', weight: 9,
     apply: s => burst(s, 3) },
-  { key: 'dx10', sprite: 'kimchi',    ...L.dx10, color: '#ffd700', weight: 3,
+  { key: 'dx10', sprite: 'kimchi',    get tag() { return T.arrow.items.dx10.tag; }, get what() { return T.arrow.items.dx10.what; }, color: '#ffd700', weight: 3,
     apply: s => burst(s, 10) },
 ];
 

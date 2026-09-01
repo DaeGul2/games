@@ -30,11 +30,11 @@ const CONFIG = {
     //   막 놓는 초보 493~1027(중앙 728) · 같은 것 위에 놓는 평균 1118~1968(중앙 1400)
     //   큰 것을 벽으로 모는 요령파 1363~3194(중앙 1902)
     // → 초보는 C, 평균은 B, 잘하면 A, S는 드물게 나오도록 잡았다.
-    { min: 2500, label: 'S', color: '#ffd700', msg: T.merge.gradeS },
-    { min: 1700, label: 'A', color: '#ff5f9e', msg: T.grade.A },
-    { min: 1100, label: 'B', color: '#00ffc8', msg: T.grade.B },
-    { min: 500, label: 'C', color: '#6ea8ff', msg: T.grade.C },
-    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
+    { min: 2500, label: 'S', color: '#ffd700', get msg() { return T.merge.gradeS; } },
+    { min: 1700, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
+    { min: 1100, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
+    { min: 500, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
+    { min: 0, label: 'D', color: '#8892a6', get msg() { return T.grade.D; } },
   ] as Grade[],
   dropCooldown: 0.34,   // 연타 방지
   overGrace: 1.2,       // 선 위에 이만큼 머물러야 게임오버 (떨어뜨리는 순간은 봐준다)

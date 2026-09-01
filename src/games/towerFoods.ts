@@ -44,7 +44,6 @@ export interface FoodDef {
 /** 음식별 설정 — 표시 폭(px)과 물리 성질만 정하면 나머지는 스프라이트에서 파생된다 */
 interface Spec {
   key: SpriteKey;
-  desc: string;
   tier: 1 | 2 | 3;
   /** 게임에서 그릴 폭. 높이는 원본 비율 유지 */
   w: number;
@@ -59,55 +58,55 @@ interface Spec {
 const SPECS: Spec[] = [
   /* ── 잘 쌓이는 것 (tier 1) ── */
   {
-    key: 'ramyeon', desc: T.tower.foodDesc.ramyeon, tier: 1, w: 78,
+    key: 'ramyeon', tier: 1, w: 78,
     friction: 0.78, frictionStatic: 0.92, restitution: 0.02, density: 0.0016,
   },
   {
-    key: 'tteokbokki', desc: T.tower.foodDesc.tteokbokki, tier: 1, w: 74,
+    key: 'tteokbokki', tier: 1, w: 74,
     friction: 0.76, frictionStatic: 0.9, restitution: 0.02, density: 0.0016,
   },
   {
-    key: 'kimchi', desc: T.tower.foodDesc.kimchi, tier: 1, w: 72,
+    key: 'kimchi', tier: 1, w: 72,
     friction: 0.82, frictionStatic: 0.95, restitution: 0.01, density: 0.0015,
   },
   {
-    key: 'mandu', desc: T.tower.foodDesc.mandu, tier: 1, w: 64,
+    key: 'mandu', tier: 1, w: 64,
     friction: 0.62, frictionStatic: 0.78, restitution: 0.03, density: 0.0013,
   },
 
   /* ── 보통 (tier 2) ── */
   {
-    key: 'gimbap', desc: T.tower.foodDesc.gimbap, tier: 2, w: 88,
+    key: 'gimbap', tier: 2, w: 88,
     friction: 0.52, frictionStatic: 0.64, restitution: 0.04, density: 0.0014,
   },
   {
-    key: 'buldak', desc: T.tower.foodDesc.buldak, tier: 2, w: 66,
+    key: 'buldak', tier: 2, w: 66,
     friction: 0.4, frictionStatic: 0.5, restitution: 0.05, density: 0.0011,
   },
   {
-    key: 'cupramyeon', desc: T.tower.foodDesc.cupramyeon, tier: 2, w: 56,
+    key: 'cupramyeon', tier: 2, w: 56,
     friction: 0.72, frictionStatic: 0.86, restitution: 0.02, density: 0.0014,
   },
   {
-    key: 'cupteok', desc: T.tower.foodDesc.cupteok, tier: 2, w: 56,
+    key: 'cupteok', tier: 2, w: 56,
     friction: 0.7, frictionStatic: 0.84, restitution: 0.02, density: 0.0014,
   },
   {
-    key: 'chicken', desc: T.tower.foodDesc.chicken, tier: 2, w: 74,
+    key: 'chicken', tier: 2, w: 74,
     friction: 0.68, frictionStatic: 0.8, restitution: 0.03, density: 0.0026,
   },
 
   /* ── 어려운 것 (tier 3) ── */
   {
-    key: 'coinbread', desc: T.tower.foodDesc.coinbread, tier: 3, w: 62,
+    key: 'coinbread', tier: 3, w: 62,
     friction: 0.24, frictionStatic: 0.3, restitution: 0.09, density: 0.0015, round: true,
   },
   {
-    key: 'sotteok', desc: T.tower.foodDesc.sotteok, tier: 3, w: 78,
+    key: 'sotteok', tier: 3, w: 78,
     friction: 0.46, frictionStatic: 0.56, restitution: 0.04, density: 0.0014,
   },
   {
-    key: 'hotdog', desc: T.tower.foodDesc.hotdog, tier: 3, w: 84,
+    key: 'hotdog', tier: 3, w: 84,
     friction: 0.42, frictionStatic: 0.52, restitution: 0.05, density: 0.0013,
   },
 ];
@@ -136,8 +135,8 @@ function build(s: Spec): FoodDef {
 
   return {
     key: s.key,
-    name: T.foods[s.key],
-    desc: s.desc,
+    get name() { return T.foods[s.key]; },
+    get desc() { return T.tower.foodDesc[s.key]; },
     tier: s.tier,
     parts,
     friction: s.friction,

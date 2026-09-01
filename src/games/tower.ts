@@ -25,11 +25,11 @@ import { T, FONT, tr } from '../i18n';
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
   grades: [
-    { min: 3200, label: 'S', color: '#ffd700', msg: T.tower.gradeS },
-    { min: 2200, label: 'A', color: '#ff5f9e', msg: T.grade.A },
-    { min: 1200, label: 'B', color: '#00ffc8', msg: T.grade.B },
-    { min: 500, label: 'C', color: '#6ea8ff', msg: T.grade.C },
-    { min: 0, label: 'D', color: '#8892a6', msg: T.grade.D },
+    { min: 3200, label: 'S', color: '#ffd700', get msg() { return T.tower.gradeS; } },
+    { min: 2200, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
+    { min: 1200, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
+    { min: 500, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
+    { min: 0, label: 'D', color: '#8892a6', get msg() { return T.grade.D; } },
   ] as Grade[],
   plateW: 252,
   turnTime: 15,        // 턴 제한시간(초). 넘기면 자동 낙하 — 부스 회전율을 위해
@@ -671,7 +671,6 @@ export function createTower(cv: HTMLCanvasElement): () => void {
     // 음식 목록 미리보기
     ctx.fillStyle = '#4a5070';
     ctx.font = `12px ${FONT}`;
-    ctx.fillText(tr(T.tower.foodList, { n: FOODS.length }), W / 2, 424);
     const per = W / (FOODS.length + 1);
     FOODS.forEach((f, i) => {
       ctx.save();
