@@ -207,6 +207,7 @@ export const ko = {
       rate: { tag: '+20%', what: '연사' },
       pierce: { tag: '관통', what: '+1' },
       hp: { tag: '+40', what: '최대 체력' },
+      spd: { tag: '+20%', what: '이동 속도' },
       heal: { tag: '회복', what: '체력 절반' },
       dx3: { tag: '×3', what: '7초 공격력' },
       dx10: { tag: '×10', what: '7초 공격력' },

@@ -60,13 +60,15 @@ export interface Stats {
   /** 일시 공격 배수 (×2·×3·×10 아이템) — burstT 동안만 유지 */
   burst: number;
   burstT: number;
+  /** 이동 속도 배수 — 이속 아이템으로만 오른다 */
+  spd: number;
 }
 
 export function initialStats(): Stats {
   return {
     n: BASE.n, dmg: BASE.dmg, mul: BASE.mul, rate: BASE.rate,
     pierce: BASE.pierce, hp: BASE.hp, maxHp: BASE.hp, shield: 0,
-    burst: 1, burstT: 0,
+    burst: 1, burstT: 0, spd: 1,
   };
 }
 
@@ -122,7 +124,7 @@ export function shownArrows(s: Stats) {
  */
 export type ItemKey =
   | 'n3' | 'n6' | 'nx2' | 'dx2' | 'dx3' | 'dx10'
-  | 'rate' | 'pierce' | 'hp' | 'heal';
+  | 'rate' | 'pierce' | 'hp' | 'heal' | 'spd';
 
 export interface Item {
   key: ItemKey;
@@ -154,6 +156,8 @@ export const ITEMS: Item[] = [
   /* ── 생존 ── */
   { key: 'hp',  sprite: 'chicken',    get tag() { return T.arrow.items.hp.tag; }, get what() { return T.arrow.items.hp.what; }, color: '#9ede3a', weight: 8,
     apply: s => { s.maxHp += 40; s.hp = Math.min(s.maxHp, s.hp + 40); } },
+  { key: 'spd', sprite: 'cupteok', get tag() { return T.arrow.items.spd.tag; }, get what() { return T.arrow.items.spd.what; }, color: '#57c8ff', weight: 10,
+    apply: s => { s.spd = Math.min(MOVE_SPEED_CAP, s.spd * 1.2); } },
   { key: 'heal', sprite: 'coinbread', get tag() { return T.arrow.items.heal.tag; }, get what() { return T.arrow.items.heal.what; }, color: '#66e0a0', weight: 6,
     apply: s => { s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.5); } },
   /* ── 일시 폭발 (7초) — 숫자가 터지는 맛은 여기서 낸다 ── */
@@ -231,7 +235,9 @@ export function enemyDamage(kind: EnemyKind, w: number) {
  * 잘하는 사람이 6분이 지나도 안 죽었다. 그래서 상한을 크게 올리고 속도도 같이 키운다.
  */
 /** 좌우 이동 속도 (차선 단위/초). 도로 폭이 -1~1이므로 4.0이면 0.5초에 끝에서 끝 */
-export const MOVE_SPEED = 4.0;
+/** 기본 좌우 속도 (차선폭/초) — 너무 빠르다는 피드백으로 4.0→2.4. 이속 아이템으로 되찾는다 */
+export const MOVE_SPEED = 2.4;
+export const MOVE_SPEED_CAP = 2.2; // spd 배수 상한
 
 export const WAVE = {
   /** 한 구간 길이(초) */

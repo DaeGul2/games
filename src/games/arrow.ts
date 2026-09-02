@@ -218,7 +218,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
   function reset() {
     st = initialStats();
     score = 0; wave = 0; kills = 0; picked = 0; waveT = 0; runT = 0;
-    px = 0; fireT = 0; hurtT = 0; shake = 0;
+    px = 0; aimX = null; fireT = 0; hurtT = 0; shake = 0;
     enemies = []; arrows = []; drops = [];
     particles.length = 0; popups.length = 0;
     bossAlive = false;
@@ -254,8 +254,10 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     const cxPix = (e.clientX - r.left) / (r.width / W);
     return Math.max(-1, Math.min(1, (cxPix - CX) / ROAD_HALF));
   }
-  cv.addEventListener('pointermove', e => { if (state === 'play') px = laneFromPointer(e); }, opts);
-  cv.addEventListener('pointerdown', e => { if (state === 'play') px = laneFromPointer(e); press(); }, opts);
+  // 마우스는 목표만 찍는다 — 실제 이동은 키보드와 같은 속도로 쫓아간다 (순간이동 방지)
+  let aimX: number | null = null;
+  cv.addEventListener('pointermove', e => { if (state === 'play') aimX = laneFromPointer(e); }, opts);
+  cv.addEventListener('pointerdown', e => { if (state === 'play') aimX = laneFromPointer(e); press(); }, opts);
 
   /* ===== 업데이트 ===== */
   function update(dt: number) {
@@ -278,9 +280,14 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     runT += dt; waveT += dt;
     tickBuffs(st, dt);
 
-    /* 좌우 이동 */
-    if (held.has('ArrowLeft')) px -= MOVE_SPEED * dt;
-    if (held.has('ArrowRight')) px += MOVE_SPEED * dt;
+    /* 좌우 이동 — 키보드·마우스 모두 같은 속도. 이속 아이템(st.spd)으로 빨라진다 */
+    const spd = MOVE_SPEED * st.spd;
+    if (held.has('ArrowLeft')) { px -= spd * dt; aimX = null; }
+    if (held.has('ArrowRight')) { px += spd * dt; aimX = null; }
+    if (aimX !== null) {
+      const d = aimX - px;
+      px += Math.sign(d) * Math.min(Math.abs(d), spd * dt);
+    }
     px = Math.max(-1, Math.min(1, px));
     walk += dt * 9;
 
@@ -355,7 +362,12 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
     for (let i = drops.length - 1; i >= 0; i--) {
       const d = drops[i];
       d.z += SPEED.item * dt;
-      if (!d.taken && d.z > 0.9 && Math.abs(d.x - px) < 0.15) {
+      // 자석 — 가까이 오면 캐릭터 쪽으로 빨려온다 ("분명 갔는데 안 먹힘" 방지)
+      if (!d.taken && d.z > 0.72) {
+        const dx = px - d.x;
+        if (Math.abs(dx) < 0.5) d.x += Math.sign(dx) * Math.min(Math.abs(dx), (d.z - 0.72) * 6 * dt);
+      }
+      if (!d.taken && d.z > 0.86 && Math.abs(d.x - px) < 0.22) {
         d.taken = true;
         d.item.apply(st);
         picked++;

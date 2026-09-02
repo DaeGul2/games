@@ -224,7 +224,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
   function addDiver(n: number) {
     for (let i = 0; i < n; i++) {
       enemies.push({
-        type: 'diver', hp: 1, r: 22,
+        type: 'diver', hp: 2, r: 22,   // 돌진병은 2방 — 1방은 너무 허무하다는 피드백
         x: 50 + Math.random() * (W - 100), y: -30 - Math.random() * 260,
         vx: 0, vy: 0, armed: false, spd: 300 + wave * 14, t: 0,
       });

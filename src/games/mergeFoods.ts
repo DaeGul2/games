@@ -44,6 +44,9 @@ export interface MergeLevel {
  * 커져 후반이 답답했고, 1.17이면 판이 안 끝나 300회를 넘게 떨어뜨려야 했다.
  */
 const RATIO = 1.19;
+/** 양념치킨(6단계)까지는 그대로, 그 뒤는 완만하게 — 후반 대형 구슬이 상자를 다 먹는다는 피드백 */
+const RATIO_LATE = 1.12;
+const CAP = 6;
 const BASE_R = 15;
 
 /**
@@ -73,7 +76,7 @@ export const LEVELS: MergeLevel[] = CHAIN.map(([key, color], i) => ({
   key,
   get name() { return T.foods[key]; },
   color,
-  r: +(BASE_R * Math.pow(RATIO, i)).toFixed(2),
+  r: +(BASE_R * Math.pow(RATIO, Math.min(i, CAP - 1)) * Math.pow(RATIO_LATE, Math.max(0, i - (CAP - 1)))).toFixed(2),
   // 레벨 n이 만들어질 때 T(n-1)점. 1단계는 떨어뜨리기만 하므로 0점.
   score: i === 0 ? 0 : tri(i),
 }));

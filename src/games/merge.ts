@@ -97,9 +97,9 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
      폭 300 x 높이 440은 시뮬레이션으로 정했다. 더 넓으면 합쳐서 생기는 공간이
      쌓이는 속도를 이겨 판이 끝나지 않고(430폭에서는 12판 중 6판이 안 죽었다),
      더 좁으면 큰 음식이 들어갈 자리가 없어 후반이 답답해진다. */
-  const BOX_L = 70, BOX_R = 370;
+  const BOX_L = 64, BOX_R = 386;   // 폭 322 — 후반 답답함 피드백으로 +22
   const FLOOR_Y = 620;
-  const LINE_Y = 180;          // 이 선 위로 넘치면 안 된다
+  const LINE_Y = 150;          // 이 선 위로 넘치면 안 된다 (더 위로 — 쌓을 공간 확대)
   const DROP_Y = 116;          // 조준 위치 — 가장 큰 낙하 음식(r=30)도 선 위에 머문다
   const WALL_TOP = 56;         // 물리 벽은 조준 지점보다 위에서 시작해야 옆으로 새지 않는다
   const WALL = 14;
