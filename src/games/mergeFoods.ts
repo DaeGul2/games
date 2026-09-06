@@ -22,10 +22,17 @@
 import { type SpriteKey } from '../lib/sprites';
 import { T } from '../i18n';
 
+/**
+ * 단계 그림 키 — 스프라이트 12종 + `feast`(K-푸드 한상).
+ * 한상은 전용 PNG가 없어 코드로 그린다: 상 위에 떡볶이를 가운데 두고 기존 스프라이트를 둘러 놓는다.
+ * 나중에 픽셀아트가 생기면 assets-src에 넣고 이 키를 SpriteKey로 바꾸면 된다.
+ */
+export type MergeKey = SpriteKey | 'feast';
+
 export interface MergeLevel {
   /** 1부터 시작하는 단계 */
   level: number;
-  key: SpriteKey;
+  key: MergeKey;
   name: string;
   /** 충돌 원의 반지름 = 구슬 반지름 */
   r: number;
@@ -50,10 +57,10 @@ const CAP = 6;
 const BASE_R = 15;
 
 /**
- * 진화 순서 — 간식에서 시작해 한 상 차림으로 끝난다.
+ * 진화 순서 — 간식에서 시작해 떡볶이 한 그릇을 지나 **한 상 차림**으로 끝난다.
  * 색은 이웃끼리 따뜻함/차가움이 번갈아 오도록 배치했다.
  */
-const CHAIN: [SpriteKey, string][] = [
+const CHAIN: [MergeKey, string][] = [
   ['coinbread', '#ffc23a'],
   ['mandu', '#35d6a4'],
   ['gimbap', '#ff6f5e'],
@@ -66,6 +73,8 @@ const CHAIN: [SpriteKey, string][] = [
   ['kimchi', '#ff7043'],
   ['ramyeon', '#c9a7ff'],
   ['tteokbokki', '#ffd700'],
+  // 끝판왕 — 한 상 차림. 반지름은 같은 등비(1.12)로 이어져 떡볶이보다 12% 크다.
+  ['feast', '#ff3d6e'],
 ];
 
 /** 삼각수 Tₙ = n(n+1)/2 — 등차면 큰 걸 만들 이유가 없고, 지수면 후반이 폭주한다 */

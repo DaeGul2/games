@@ -48,7 +48,7 @@ const KEYS = {
   '10원빵': 'coinbread',
   '김밥': 'gimbap',
   '김치': 'kimchi',
-  '떡뽁이': 'tteokbokki',
+  '떡볶이': 'tteokbokki',
   '라면': 'ramyeon',
   '만두': 'mandu',
   '불닭': 'buldak',

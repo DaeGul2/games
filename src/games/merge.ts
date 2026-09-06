@@ -13,7 +13,7 @@
  *
  * ── 점수
  *   삼각수 Tₙ = n(n+1)/2. 등차면 큰 걸 만들 이유가 없고, 지수면 후반이 폭주한다.
- *   최종 단계(떡뽁이) 둘을 합치면 원작의 수박처럼 **사라지고** 큰 보너스를 준다 — 자리를 비워주는 보상.
+ *   최종 단계(K-푸드 한상) 둘을 합치면 원작의 수박처럼 **사라지고** 큰 보너스를 준다 — 자리를 비워주는 보상.
  */
 import { Bodies, Body, Composite, Engine, Events, type Pair } from 'matter-js';
 import { sound, type Pattern } from '../lib/sound';
@@ -382,6 +382,52 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
   }
 
   /* ===== 그리기 ===== */
+
+  /**
+   * 끝판왕 'K-푸드 한상' — 전용 스프라이트가 없어 코드로 차린다.
+   * 둥근 상(쟁반) 위에 떡볶이를 가운데 두고, 기존 스프라이트 5개를 둘러 놓는다.
+   * 호출 측이 이미 원점으로 translate 해 둔 상태에서 반지름 r 안에 그린다.
+   */
+  function drawFeast(r: number) {
+    // 상 — 나무색 원반 + 테두리
+    const tray = r * 0.86;
+    const tg = ctx.createRadialGradient(-tray * 0.2, -tray * 0.25, tray * 0.1, 0, 0, tray);
+    tg.addColorStop(0, '#8a5a3c');
+    tg.addColorStop(1, '#4e2f1e');
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.arc(0, 0, tray, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#c08a5a';
+    ctx.lineWidth = Math.max(1, r * 0.04);
+    ctx.beginPath();
+    ctx.arc(0, 0, tray - ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 반찬 5접시 — 둘레에 고르게. 붉은 것끼리 이웃하지 않게 순서를 잡았다.
+    const sides = ['kimchi', 'gimbap', 'chicken', 'mandu', 'ramyeon'] as const;
+    const ring = r * 0.56, side = r * 0.27;
+    sides.forEach((k, i) => {
+      const a = -Math.PI / 2 + (i / sides.length) * Math.PI * 2;
+      ctx.save();
+      ctx.translate(Math.cos(a) * ring, Math.sin(a) * ring);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath();
+      ctx.arc(0, 0, side, 0, Math.PI * 2);
+      ctx.fill();
+      drawInCircle(ctx, k, side, 0.86);
+      ctx.restore();
+    });
+
+    // 가운데 떡볶이 — 주인공이라 제일 크게
+    const main = r * 0.36;
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath();
+    ctx.arc(0, 0, main, 0, Math.PI * 2);
+    ctx.fill();
+    drawInCircle(ctx, 'tteokbokki', main, 0.9);
+  }
+
   function drawBubble(x: number, y: number, def: MergeLevel, pop: number, alpha = 1) {
     const r = def.r * (1 + pop * 0.22);
     ctx.save();
@@ -399,7 +445,8 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.fill();
 
     // 음식 (구슬에 내접)
-    drawInCircle(ctx, def.key, r, 0.9);
+    if (def.key === 'feast') drawFeast(r);
+    else drawInCircle(ctx, def.key, r, 0.9);
 
     // 테두리 + 광택
     ctx.strokeStyle = def.color;
@@ -475,7 +522,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.font = `11px ${FONT}`;
     ctx.fillText(T.merge.evolution, px, 222);
     LEVELS.forEach((d, i) => {
-      const y = 244 + i * 33;
+      const y = 244 + i * 31;   // 13단계가 캔버스(700) 안에 들어오도록 33→31
       const got = d.level <= maxLevel;
       ctx.globalAlpha = got ? 1 : 0.3;
       ctx.fillStyle = d.color;
