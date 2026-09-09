@@ -90,8 +90,7 @@ type State = 'ready' | 'play' | 'over';
 export function createMerge(cv: HTMLCanvasElement): () => void {
   const W = 640, H = 700;
   const ctx = cv.getContext('2d', { alpha: false })!;
-  const fit = Math.min(1, (innerWidth - 40) / W, Math.max(0.5, (innerHeight - 210) / H));
-  const quality = new Quality(cv, ctx, W, H, fit);
+  const quality = new Quality(cv, ctx, W, H);
 
   /* 상자 — 왼쪽에 두고 오른쪽은 진화표 자리.
      폭 300 x 높이 440은 시뮬레이션으로 정했다. 더 넓으면 합쳐서 생기는 공간이
@@ -682,6 +681,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
 
   return () => {
     ac.abort();
+    quality.dispose();
     cancelAnimationFrame(rafId);
     sound.stopMusic();
     Events.off(engine, 'collisionStart');

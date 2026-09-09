@@ -123,8 +123,7 @@ const WAVE_PLAN: Record<number, WaveEntry[]> = {
 export function createShooter(cv: HTMLCanvasElement): () => void {
   const W = 720, H = 860;
   const ctx = cv.getContext('2d', { alpha: false })!;
-  const fit = Math.min(1, (innerHeight - 120) / H, (innerWidth - 40) / W);
-  const quality = new Quality(cv, ctx, W, H, fit);
+  const quality = new Quality(cv, ctx, W, H);
   let showFps = false;
 
   const KEY = KEYS.shooter;
@@ -166,14 +165,17 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
     if (e.code === 'KeyF' && !e.repeat) showFps = !showFps;
   }, opts);
   window.addEventListener('keyup', e => { keys[e.code] = false; }, opts);
-  cv.addEventListener('pointermove', e => {
+  function aimFrom(e: PointerEvent) {
     // 실제 표시 크기 기준으로 환산 — CSS 배율이 바뀌어도 커서와 기체가 어긋나지 않는다
     const r = cv.getBoundingClientRect();
     mouseX = (e.clientX - r.left) * (W / r.width);
-    mouseY = (e.clientY - r.top) * (H / r.height);
+    // 손가락으로 조종할 때 기체가 손 밑에 깔리지 않도록 조금 위에 둔다
+    const lift = e.pointerType === 'touch' ? 78 : 0;
+    mouseY = (e.clientY - r.top) * (H / r.height) - lift;
     useMouse = true;
-  }, opts);
-  cv.addEventListener('pointerdown', pressStart, opts);
+  }
+  cv.addEventListener('pointermove', aimFrom, opts);
+  cv.addEventListener('pointerdown', e => { aimFrom(e); pressStart(); }, opts);
 
   function reset() {
     score = 0; combo = 1; comboTimer = 0; lives = CONFIG.lives;
@@ -774,6 +776,7 @@ export function createShooter(cv: HTMLCanvasElement): () => void {
 
   return () => {
     ab.abort();
+    quality.dispose();
     cancelAnimationFrame(rafId);
     sound.stopMusic();
   };

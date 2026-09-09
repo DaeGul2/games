@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { T } from '../i18n';
+import { sound } from '../lib/sound';
 import type { GamePalette } from './GameCard';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 export default function GameShell({ title, tagline, palette, hints, mount }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [muted, setMuted] = useState(sound.muted);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -23,38 +25,19 @@ export default function GameShell({ title, tagline, palette, hints, mount }: Pro
   }, [mount]);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '84px 16px 48px',
-        gap: 18,
-      }}
-    >
+    <div className="game-shell">
       {/* 상단 바 */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="game-bar">
         <Link to="/" className="btn-menu display">
           ← MENU
         </Link>
 
-        <h1 className="display" style={{ fontSize: 24, color: palette.title }}>
+        <h1 className="display" style={{ color: palette.title }}>
           {title}
         </h1>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {/* 키보드 힌트 — 터치 기기에서는 CSS가 숨긴다 */}
+        <div className="game-hints">
           {hints.map(h => (
             <div key={h.key} className="chip">
               <kbd>{h.key}</kbd>
@@ -62,6 +45,16 @@ export default function GameShell({ title, tagline, palette, hints, mount }: Pro
             </div>
           ))}
         </div>
+
+        {/* 터치 기기에는 M 키가 없으므로 음소거 버튼을 준다 */}
+        <button
+          type="button"
+          className="btn-icon touch-only"
+          onClick={() => setMuted(sound.toggleMute())}
+          aria-pressed={muted}
+        >
+          {muted ? '🔇' : '🔊'} {T.common.mute}
+        </button>
       </div>
 
       {/* 캔버스 무대 — 흰 프레임, 보더 색은 게임 색 */}
@@ -78,13 +71,13 @@ export default function GameShell({ title, tagline, palette, hints, mount }: Pro
       <p className="notice">{T.common.shellNote}</p>
 
       {/* 왼쪽 아래 — 안내 캐릭터 + 말풍선 (시안 2안) */}
-      <div className="deco-fixed" style={{ left: 28, bottom: 30, display: 'grid', justifyItems: 'start', gap: 6 }}>
+      {/* 인라인 display 를 쓰면 모바일에서 숨기는 미디어쿼리를 이겨 버린다 — 배치도 CSS로 */}
+      <div className="deco-fixed deco-kid">
         <motion.div
           className="bubble"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          style={{ marginLeft: 40 }}
+          transition={{ delay: 0.5 }}
         >
           {tagline}
         </motion.div>
@@ -99,7 +92,7 @@ export default function GameShell({ title, tagline, palette, hints, mount }: Pro
       </div>
 
       {/* 오른쪽 아래 — 꽃 */}
-      <div className="deco-fixed" style={{ right: 36, bottom: 26, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+      <div className="deco-fixed deco-flowers">
         <img src="/deco/plant-tulip.png" alt="" className="pixel" style={{ height: 48 }} />
         <img src="/deco/heart-pink.png" alt="" className="pixel" style={{ height: 22, marginBottom: 40 }} />
         <img src="/deco/plant-pink.png" alt="" className="pixel" style={{ height: 44 }} />

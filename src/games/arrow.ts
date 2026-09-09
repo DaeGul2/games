@@ -110,8 +110,7 @@ type State = 'ready' | 'play' | 'over';
 export function createArrow(cv: HTMLCanvasElement): () => void {
   const W = 560, H = 760;
   const ctx = cv.getContext('2d', { alpha: false })!;
-  const fit = Math.min(1, (innerWidth - 40) / W, Math.max(0.5, (innerHeight - 210) / H));
-  const quality = new Quality(cv, ctx, W, H, fit);
+  const quality = new Quality(cv, ctx, W, H);
 
   const CX = W / 2;
   const HORIZON = 150;
@@ -735,6 +734,7 @@ export function createArrow(cv: HTMLCanvasElement): () => void {
 
   return () => {
     ac.abort();
+    quality.dispose();
     cancelAnimationFrame(rafId);
     sound.stopMusic();
   };

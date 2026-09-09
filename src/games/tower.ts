@@ -82,8 +82,7 @@ type State = 'menu' | 'aim' | 'fall' | 'over';
 export function createTower(cv: HTMLCanvasElement): () => void {
   const W = 720, H = 620;
   const ctx = cv.getContext('2d', { alpha: false })!;
-  const fit = Math.min(1, (innerWidth - 40) / W, Math.max(0.5, (innerHeight - 210) / H));
-  const quality = new Quality(cv, ctx, W, H, fit);
+  const quality = new Quality(cv, ctx, W, H);
 
   const PLATE_Y = H - 96;
   const KILL_Y = PLATE_Y + 150;   // 이 아래로 내려가면 떨어진 것
@@ -787,6 +786,7 @@ export function createTower(cv: HTMLCanvasElement): () => void {
 
   return () => {
     ac.abort();
+    quality.dispose();
     cancelAnimationFrame(rafId);
     sound.stopMusic();
     Composite.clear(engine.world, false);

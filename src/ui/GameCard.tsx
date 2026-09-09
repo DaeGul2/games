@@ -32,19 +32,12 @@ export default function GameCard({ to, title, tagline, bullets, controls, palett
     >
       <Link to={to} style={{ display: 'block' }}>
         <motion.div
+          className="game-card"
           whileHover={{ y: -3, boxShadow: `0 9px 0 ${palette.border}` }}
           whileTap={{ y: 2, boxShadow: `0 3px 0 ${palette.border}` }}
           style={{
-            position: 'relative',
-            borderRadius: 18,
             border: `3px solid ${palette.border}`,
-            background: '#fff',
             boxShadow: `0 6px 0 ${palette.border}`,
-            padding: 24,
-            minHeight: 300,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -64,7 +57,7 @@ export default function GameCard({ to, title, tagline, bullets, controls, palett
               >
                 GAME 0{index + 1}
               </div>
-              <h2 className="display" style={{ fontSize: 30, color: palette.title, lineHeight: 1.1 }}>
+              <h2 className="display card-title" style={{ color: palette.title, lineHeight: 1.1 }}>
                 {title}
               </h2>
               <p style={{ color: '#6e6f82', fontSize: 14, marginTop: 6 }}>{tagline}</p>

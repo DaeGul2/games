@@ -52,7 +52,7 @@ export default function Home() {
   }
 
   return (
-    <div className="wrap" style={{ padding: '96px 24px 90px' }}>
+    <div className="wrap home-wrap" style={{ padding: '96px 24px 90px' }}>
       {/* ===== 헤더 ===== */}
       <header style={{ textAlign: 'center', marginBottom: 48, position: 'relative' }}>
         {/* 시안 2안 — 제목 양옆 요리사 / 비빔밥 */}
@@ -133,7 +133,7 @@ export default function Home() {
       </header>
 
       {/* ===== 게임 카드 ===== */}
-      <section style={{ display: 'flex', gap: 26, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 60 }}>
+      <section className="home-cards" style={{ display: 'flex', gap: 26, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 60 }}>
         <GameCard
           index={0}
           to="/shooter"
@@ -187,7 +187,7 @@ export default function Home() {
         >
           — HALL OF FAME —
         </motion.h2>
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="home-boards" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Leaderboard title={tr(T.common.top10, { game: T.shooter.title })} palette={PALETTES.shooter} records={shooterScores} delay={0.44} />
           <Leaderboard title={tr(T.common.top10, { game: T.tower.title })} palette={PALETTES.tower} records={towerScores} delay={0.52} />
           <Leaderboard title={tr(T.common.top10, { game: T.merge.title })} palette={PALETTES.merge} records={mergeScores} delay={0.6} />

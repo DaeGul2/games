@@ -68,6 +68,10 @@
 
   /* 제목은 픽셀 서체, 본문은 Pretendard. 태국어는 두 서체 모두 글리프가 없어 Noto Sans Thai로 떨어진다 */
   --font-display: 'Galmuri11', 'Noto Sans Thai', 'Malgun Gothic', monospace;
+  /* 캔버스 무대 계산용 — 캔버스 위아래로 UI가 차지하는 높이와 좌우 여백 */
+  --chrome: 250px;
+  --stage-gutter: 64px;
+
   --font-body: 'Pretendard', 'Noto Sans Thai', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 }
 
@@ -80,6 +84,9 @@
 /* 배경색은 html 에만 — body 에도 칠하면 z-index:-1 인 .bg-layer 위에 덮여 장식이 안 보인다 */
 html {
   background: var(--bg);
+  /* iOS 가로 모드에서 글자를 제멋대로 키우지 않게 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html,
@@ -94,6 +101,8 @@ body {
 
 body {
   overflow-x: hidden;
+  /* 게임 중 당겨서 새로고침 방지 */
+  overscroll-behavior-y: contain;
 }
 
 a {
@@ -178,6 +187,25 @@ a {
   pointer-events: none;
 }
 
+/* 게임 페이지 구석 장식 — 배치를 CSS에 두어야 모바일에서 확실히 숨길 수 있다 */
+.deco-kid {
+  left: 28px;
+  bottom: 30px;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+.deco-kid .bubble {
+  margin-left: 40px;
+}
+.deco-flowers {
+  right: 36px;
+  bottom: 26px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 /* 픽셀 말풍선 — 그림을 배경으로 깔고 글자를 얹는다 */
 .bubble {
   position: relative;
@@ -201,8 +229,10 @@ a {
   height: auto;
 }
 
-/* 좁은 화면에서는 큰 장식을 숨긴다 — UI와 겹치면 안 된다 */
-@media (max-width: 1100px) {
+/* 좁은 화면·터치 기기에서는 큰 장식을 숨긴다 — UI와 겹치면 안 된다.
+   폭 조건만으로는 부족하다: 모바일 사파리의 "데스크탑 사이트" 모드는 레이아웃 폭을
+   1100px 넘게 잡아 캐릭터가 게임 화면을 덮는다. 그래서 포인터 종류도 함께 본다. */
+@media (max-width: 1100px), (pointer: coarse) {
   .deco-wide,
   .deco-fixed {
     display: none;
@@ -348,11 +378,41 @@ a {
   contain: paint;
 }
 
+/* 캔버스 표시 크기는 여기서만 정한다 (--gw/--gh 는 게임이 심어 준 논리 해상도).
+   원본보다 크게 키우지 않고, 가로는 화면 폭에서, 세로는 UI를 뺀 높이에서 잘라 맞춘다.
+   백버퍼 해상도는 Quality 가 ResizeObserver 로 따라온다 — 회전·주소창 접힘에 전부 대응. */
 .stage canvas {
   display: block;
   border-radius: 10px;
   background: var(--board);
-  max-width: 100%;
+  aspect-ratio: var(--gw) / var(--gh);
+  height: auto;
+  width: max(
+    180px,
+    min(
+      calc(var(--gw) * 1px),
+      calc(100vw - var(--stage-gutter)),
+      calc((100vh - var(--chrome)) * var(--gw) / var(--gh))
+    )
+  );
+  touch-action: none;              /* 게임 중 스크롤·더블탭 확대 방지 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 모바일 주소창을 뺀 실제 높이 (지원 브라우저에서만) */
+@supports (height: 100svh) {
+  .stage canvas {
+    width: max(
+      180px,
+      min(
+        calc(var(--gw) * 1px),
+        calc(100vw - var(--stage-gutter)),
+        calc((100svh - var(--chrome)) * var(--gw) / var(--gh))
+      )
+    );
+  }
 }
 
 /* 코너 픽셀 마커 */
@@ -394,4 +454,287 @@ a {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #c2bbf0;
+}
+
+/* ===== 홈 게임 카드 ===== */
+.game-card {
+  position: relative;
+  border-radius: 18px;
+  background: #fff;
+  padding: 24px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card-title {
+  font-size: 30px;
+}
+
+/* ===== 상단 고정 UI (로고 · 언어 토글) ===== */
+.site-logo {
+  position: fixed;
+  top: 22px;
+  left: 24px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.site-logo img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+.site-logo .name {
+  display: grid;
+  line-height: 1.15;
+  padding-top: 2px;
+}
+.site-logo .name b {
+  font-size: 16px;
+  font-weight: 800;
+  color: #004e51;
+  letter-spacing: -0.01em;
+}
+.site-logo .name small {
+  font-size: 10px;
+  font-weight: 500;
+  color: #4f7a70;
+}
+
+.lang-toggle {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 20;
+  display: flex;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+  box-shadow: var(--shadow-soft);
+}
+.lang-toggle button {
+  border: none;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+  color: #5b5a86;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-toggle button[aria-pressed='true'] {
+  background: var(--violet);
+  color: #fff;
+}
+
+/* ===== 게임 페이지 골격 ===== */
+.game-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 84px 16px 48px;
+  gap: 18px;
+}
+.game-bar {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.game-bar h1 {
+  font-size: 24px;
+}
+.game-hints {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 터치 기기 전용 도구 — 마우스 환경에서는 숨긴다 */
+.touch-only {
+  display: none;
+}
+@media (pointer: coarse) {
+  .touch-only {
+    display: inline-flex;
+  }
+  /* 키보드 힌트는 터치에서 의미가 없다 */
+  .game-hints {
+    display: none;
+  }
+}
+
+.btn-icon {
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #fff;
+  border: 2px solid var(--line);
+  color: #5b5a86;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ===== 모바일 =====
+   폭이 좁을 때는 물론, 포인터가 손가락인 기기라면 폭과 무관하게 적용한다.
+   (모바일 사파리의 데스크탑 사이트 모드는 폭을 1000px 넘게 보고한다) */
+@media (max-width: 860px), (pointer: coarse) {
+  :root {
+    --chrome: 212px;
+    --stage-gutter: 20px;
+  }
+
+  .site-logo {
+    top: 12px;
+    left: 12px;
+    gap: 8px;
+  }
+  .site-logo img {
+    height: 26px;
+  }
+  .site-logo .name b {
+    font-size: 13px;
+  }
+  .site-logo .name small {
+    display: none;
+  }
+
+  .lang-toggle {
+    top: 12px;
+    right: 12px;
+    padding: 2px;
+  }
+  .lang-toggle button {
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .game-shell {
+    padding: 56px 8px 22px;
+    gap: 10px;
+  }
+  /* 좁은 화면에서는 키보드 힌트 대신 음소거 버튼만 — 칩이 두 줄로 늘어나면 판이 밀린다 */
+  .game-hints {
+    display: none;
+  }
+  .touch-only {
+    display: inline-flex;
+  }
+  .game-bar {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .game-bar h1 {
+    font-size: 17px;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .btn-menu {
+    padding: 6px 10px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .btn-icon {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .stage {
+    padding: 7px;
+    border-width: 2px;
+    border-radius: 14px;
+  }
+  .notice {
+    font-size: 11px;
+    padding: 7px 12px;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  .wrap {
+    padding: 0 14px;
+  }
+  .home-wrap {
+    padding: 62px 14px 48px !important;
+  }
+  .badge {
+    padding: 6px 13px;
+    font-size: 11px;
+  }
+  .home-cards,
+  .home-boards {
+    gap: 14px !important;
+  }
+  .chip {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .game-card {
+    padding: 16px;
+    min-height: 0;
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 22px;
+  }
+  .bubble {
+    font-size: 12px;
+    padding: 10px 20px 20px;
+    white-space: normal;
+  }
+}
+
+/* 아주 좁은 폰 — 판을 조금이라도 넓히려고 여백을 더 깎는다 */
+@media (max-width: 430px) {
+  :root {
+    --stage-gutter: 12px;
+  }
+  .game-shell {
+    padding: 54px 4px 16px;
+  }
+  .stage {
+    padding: 5px;
+  }
+  .game-bar h1 {
+    font-size: 15px;
+  }
+}
+
+/* 가로로 눕힌 폰 — 높이가 없으므로 위아래 UI를 최대한 걷어내고 판을 키운다 */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root {
+    --chrome: 116px;
+    --stage-gutter: 16px;
+  }
+  .game-shell {
+    padding: 44px 8px 8px;
+    gap: 6px;
+  }
+  .game-shell .notice {
+    display: none;
+  }
+  .site-logo,
+  .lang-toggle {
+    top: 8px;
+  }
+  .site-logo .name b {
+    font-size: 12px;
+  }
 }
