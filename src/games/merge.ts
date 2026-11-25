@@ -26,14 +26,15 @@ import { T, FONT, tr } from '../i18n';
 /* ===== 설정 (부스 운영 중 조정 가능) ===== */
 const CONFIG = {
   grades: [
-    // 문턱은 엔진 시뮬레이션으로 정했다. 세 종류 AI를 24판씩 돌린 점수 분포:
-    //   막 놓는 초보 493~1027(중앙 728) · 같은 것 위에 놓는 평균 1118~1968(중앙 1400)
-    //   큰 것을 벽으로 모는 요령파 1363~3194(중앙 1902)
-    // → 초보는 C, 평균은 B, 잘하면 A, S는 드물게 나오도록 잡았다.
-    { min: 2500, label: 'S', color: '#ffd700', get msg() { return T.merge.gradeS; } },
-    { min: 1700, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
-    { min: 1100, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
-    { min: 500, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
+    // 문턱은 엔진 시뮬레이션으로 정했다. 한상까지 갈 수 있게 바꾸면서(넓은 상자·낙하 창 이동)
+    // 점수가 올라, 바꾸기 전과 **같은 실력이면 같은 등급 비율**이 나오도록 다시 맞췄다:
+    //   막 놓는 초보 60판   916~2757(중앙 1877)   조정 전 A20 B57 C20 S3 → 새 A23 B53 C23 S0 (%)
+    //   같은 것 위에 놓는 평균 400판 2185~8306(중앙 4459, 한상 5판) 조정 전 S63 A37 → 새 S64 A36
+    //   물리로 한 수 앞을 보는 고수 64판 4293~15077(중앙 6579, 한상 14판) 전부 S
+    { min: 4100, label: 'S', color: '#ffd700', get msg() { return T.merge.gradeS; } },
+    { min: 2200, label: 'A', color: '#ff5f9e', get msg() { return T.grade.A; } },
+    { min: 1500, label: 'B', color: '#00ffc8', get msg() { return T.grade.B; } },
+    { min: 650, label: 'C', color: '#6ea8ff', get msg() { return T.grade.C; } },
     { min: 0, label: 'D', color: '#8892a6', get msg() { return T.grade.D; } },
   ] as Grade[],
   dropCooldown: 0.34,   // 연타 방지
@@ -96,10 +97,10 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
      폭 300 x 높이 440은 시뮬레이션으로 정했다. 더 넓으면 합쳐서 생기는 공간이
      쌓이는 속도를 이겨 판이 끝나지 않고(430폭에서는 12판 중 6판이 안 죽었다),
      더 좁으면 큰 음식이 들어갈 자리가 없어 후반이 답답해진다. */
-  const BOX_L = 64, BOX_R = 386;   // 폭 322 — 후반 답답함 피드백으로 +22
+  const BOX_L = 24, BOX_R = 400;   // 폭 376 — '한상까지 아무도 못 간다'는 피드백으로 322→376 (캔버스 왼쪽 끝까지)
   const FLOOR_Y = 620;
   const LINE_Y = 150;          // 이 선 위로 넘치면 안 된다 (더 위로 — 쌓을 공간 확대)
-  const DROP_Y = 116;          // 조준 위치 — 가장 큰 낙하 음식(r=30)도 선 위에 머문다
+  const DROP_Y = 116;          // 조준 위치 — 가장 큰 낙하 음식(7단계 r≈39)도 선 위에 머문다
   const WALL_TOP = 56;         // 물리 벽은 조준 지점보다 위에서 시작해야 옆으로 새지 않는다
   const WALL = 14;
   const KEY = KEYS.merge;
@@ -126,7 +127,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
   let state: State = 'ready';
   let pieces: Piece[] = [];
   let score = 0, best = getBest(KEY), maxLevel = 1, merges = 0;
-  let cur = pickDropLevel(), next = pickDropLevel();
+  let cur = pickDropLevel(maxLevel), next = pickDropLevel(maxLevel);
   let aimX = (BOX_L + BOX_R) / 2;
   let cooldown = 0, overT = 0, dangerPulse = 0, shake = 0;
   let showFps = false;
@@ -260,7 +261,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     particles.length = 0;
     popups.length = 0;
     score = 0; maxLevel = 1; merges = 0;
-    cur = pickDropLevel(); next = pickDropLevel();
+    cur = pickDropLevel(maxLevel); next = pickDropLevel(maxLevel);
     aimX = (BOX_L + BOX_R) / 2;
     cooldown = 0; dangerPulse = 0; shake = 0;
     sound.startMusic(BGM, () => 104);
@@ -273,7 +274,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     const x = clampAim(aimX, def.r);
     spawn(cur, x, DROP_Y);
     cur = next;
-    next = pickDropLevel();
+    next = pickDropLevel(maxLevel);
     cooldown = CONFIG.dropCooldown;
     SFX.drop();
   }
@@ -494,7 +495,7 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
   }
 
   function drawPanel() {
-    const px = BOX_R + 40;
+    const px = BOX_R + 26;   // 상자를 넓혀도 진화표는 제자리(426)
     ctx.textAlign = 'left';
 
     ctx.fillStyle = '#e8f0ff';
@@ -509,7 +510,8 @@ export function createMerge(cv: HTMLCanvasElement): () => void {
     ctx.font = `11px ${FONT}`;
     ctx.fillText(T.common.next, px, 112);
     const nd = defOf(next);
-    drawBubble(px + 40, 146, nd, 0, 1);
+    // 후반엔 6·7단계도 떨어지는데, 그대로 그리면 '다음' 글자를 덮는다 — 미리보기만 r30으로 줄인다
+    drawBubble(px + 40, 146, nd.r > 30 ? { ...nd, r: 30 } : nd, 0, 1);
     ctx.fillStyle = '#cfd7f5';
     ctx.font = `bold 12px ${FONT}`;
     ctx.textAlign = 'center';

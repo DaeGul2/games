@@ -51,8 +51,13 @@ export interface MergeLevel {
  * 커져 후반이 답답했고, 1.17이면 판이 안 끝나 300회를 넘게 떨어뜨려야 했다.
  */
 const RATIO = 1.19;
-/** 양념치킨(6단계)까지는 그대로, 그 뒤는 완만하게 — 후반 대형 구슬이 상자를 다 먹는다는 피드백 */
-const RATIO_LATE = 1.12;
+/**
+ * 양념치킨(6단계)까지는 그대로, 그 뒤는 완만하게 — 후반 대형 구슬이 상자를 다 먹는다는 피드백.
+ * **한상 도달률을 맞추는 손잡이가 이 값이다** (상자 폭 376 + 낙하 창 이동 기준, 같은 것 위에 놓는 평균 AI):
+ *   1.05 → 20% · 1.08 → 4% · 1.09 → 4% · 1.095 → 1.5% · **1.10 → 1.25% (400판 중 5판)**
+ * 목표는 '평균 실력은 100판에 1번'. 1.12였을 땐 상자도 좁아 아무도 못 갔다(90판 중 0판).
+ */
+const RATIO_LATE = 1.10;
 const CAP = 6;
 const BASE_R = 15;
 
@@ -73,7 +78,7 @@ const CHAIN: [MergeKey, string][] = [
   ['kimchi', '#ff7043'],
   ['ramyeon', '#c9a7ff'],
   ['tteokbokki', '#ffd700'],
-  // 끝판왕 — 한 상 차림. 반지름은 같은 등비(1.12)로 이어져 떡볶이보다 12% 크다.
+  // 끝판왕 — 한 상 차림. 반지름은 같은 등비(RATIO_LATE)로 이어져 떡볶이보다 조금 크다.
   ['feast', '#ff3d6e'],
 ];
 
@@ -92,11 +97,22 @@ export const LEVELS: MergeLevel[] = CHAIN.map(([key, color], i) => ({
 
 export const MAX_LEVEL = LEVELS.length;
 
-/** 떨어뜨릴 수 있는 것은 아래 5단계까지. 큰 것은 오직 합쳐서만 만든다 */
-export const DROP_MAX_LEVEL = 5;
+/** 한 번에 떨어질 수 있는 음식 종류 수 */
+const DROP_KINDS = 5;
 
-export function pickDropLevel(rnd: () => number = Math.random) {
-  return 1 + Math.floor(rnd() * DROP_MAX_LEVEL);
+/**
+ * 떨어질 음식 고르기 — 5종류 창이 **진행에 따라 위로 밀린다.**
+ *   처음      : 1~5단계 (10원빵~핫도그)
+ *   불닭(9) 이후: 2~6단계 — 10원빵은 더 안 나온다
+ *   라면(11) 이후: 3~7단계
+ *
+ * 왜: 한상 1개 = 10원빵 4,096개분이다. 1~5단계만 계속 나오면 한 번에 평균 6.2개분이라
+ * 실수 없이도 최소 661번을 놓아야 하는데, 잘하는 봇도 460번쯤에 상자가 넘쳤다.
+ * 후반에 작은 것을 빼 주면 같은 공간으로 더 빨리 큰 것을 만든다.
+ */
+export function pickDropLevel(maxLevel = 1, rnd: () => number = Math.random) {
+  const lo = maxLevel >= 11 ? 3 : maxLevel >= 9 ? 2 : 1;
+  return lo + Math.floor(rnd() * DROP_KINDS);
 }
 
 /** 한 단계 위를 만드는 데 필요한 1단계 개수 = 2^(n-1) */
